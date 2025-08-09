@@ -11,6 +11,8 @@ using Microsoft.Extensions.Options;
 using Polly;
 using Polly.Retry;
 
+using static ActorFramework.Constants.ActorFrameworkConstants;
+
 namespace ActorFramework.Runtime.Orchestration;
 
 /// <summary>
@@ -28,7 +30,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
             options.Value.RetryCountIfExceptionOccurs,
             onRetry: (ex, attempt, ctxPol) =>
             {
-                logger.LogWarning(ex, "Actor '{ActorId}' retry {Attempt}/{RetryCount} on message", actorId, attempt, options.Value.RetryCountIfExceptionOccurs);
+                logger.LogWarning(ex, ActorRetryingOnMessage, actorId, attempt, options.Value.RetryCountIfExceptionOccurs);
             });
 
     /// <summary>
@@ -83,7 +85,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
             ShouldStopOnError = options.Value.ShouldStopOnUnhandledException,
             OnMessageError = onMessageError ?? ((message, ex) =>
             {
-                logger.LogError(ex, "Unhandled exception in actor {ActorId} processing message {MessageType}",
+                logger.LogError(ex, UnhandledExceptionInActorProcessingMessage,
                     actorId, message.GetType().Name);
             })
         };
@@ -120,15 +122,15 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
 
         if (!_registry.TryGetValue(actorId, out var reg))
         {
-            return $"Actor '{actorId}' not found.";
+            return string.Format(ActorNotFoundFormat, actorId);
         }
 
         if (!reg.IsPaused)
         {
-            return "Actor already processing.";
+            return ActorAlreadyProcessing;
         }
 
-        logger.LogInformation("Resuming actor '{ActorId}'", actorId);
+        logger.LogInformation(ResumingActor, actorId);
         reg.IsPaused = false;
         reg.PauseGate.Set();
 
@@ -138,7 +140,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
                 DispatchLoopAsync(reg.Actor, reg.Context, reg.Mailbox, reg, reg.CancellationSource.Token));
         }
 
-        return "Actor resumed.";
+        return ActorResumed;
     }
 
     private async Task DispatchLoopAsync(
@@ -176,7 +178,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
                     {
                         logger.LogError(
                             ex,
-                            "Actor '{ActorId}' faulted on message after max retries; pausing",
+                            ActorFaultedAfterMaxRetriesPausing,
                             context.ActorId);
 
                         reg.IsPaused = true;
@@ -187,7 +189,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
                     {
                         logger.LogWarning(
                             ex,
-                            "Actor '{ActorId}' skipping failed message and continuing",
+                            ActorSkippingFailedMessageContinuing,
                             context.ActorId);
                         continue;  // swallow and move to next message
                     }
@@ -235,7 +237,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
             return;
         }
 
-        logger.LogInformation("Shutting down Director, cancelling actors...");
+        logger.LogInformation(ShuttingDownDirectorCancellingActors);
         foreach (var registration in _registry.Values)
         {
             registration.CancellationSource.Cancel();
@@ -246,7 +248,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
             .GetAwaiter()
             .GetResult();
 
-        logger.LogInformation("Dispatch loops completed, disposing mailboxes...");
+        logger.LogInformation(DispatchLoopsCompletedDisposingMailboxes);
 
         foreach (var registration in _registry.Values)
         {
