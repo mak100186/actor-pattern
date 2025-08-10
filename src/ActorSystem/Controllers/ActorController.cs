@@ -49,12 +49,25 @@ public class ActorController(ILogger<ActorController> logger, Director<TestMessa
     [HttpGet("SendMessages")]
     public async Task<IActionResult> SendMessages()
     {
+        var errors = new List<string>();
         for (var i = 0; i < MaxActorCount; i++)
         {
             for (var j = 0; j < MaxMessageCount; j++)
             {
-                await director.Send($"actor{i}", new TestMessage(_jitter.Next(100, 500)));
+                try
+                {
+                    await director.Send($"actor{i}", new TestMessage(_jitter.Next(100, 500)));
+                }
+                catch (ActorIdNotFoundException ex)
+                {
+                    errors.Add(ex.Message);
+                }
             }
+        }
+
+        if (errors.Count > 0)
+        {
+            return Ok($"Messages sent. Errors encountered {string.Join(',', errors)}");
         }
 
         return Ok("Messages sent.");
@@ -64,6 +77,32 @@ public class ActorController(ILogger<ActorController> logger, Director<TestMessa
     public IActionResult MailboxStatuses()
     {
         var statuses = director.GetMailboxStatuses();
+        return Ok(statuses);
+    }
+
+    [HttpGet("ReleaseActors")]
+    public IActionResult ReleaseActors()
+    {
+        var statuses = director.ReleaseActors(actorState =>
+        {
+            if (actorState.IsPaused)
+            {
+                return false; // Do not release paused actors
+            }
+
+            if (actorState.Mailbox.Count > 0)
+            {
+                return false; // Do not release actors with pending messages
+            }
+
+            if (actorState.HasReceivedMessageWithin(TimeSpan.FromMilliseconds(1500)))
+            {
+                return false; // Do not release actors that have received messages recently
+            }
+
+            return true; // Release actors that are not paused and have no pending messages
+        });
+
         return Ok(statuses);
     }
 }
