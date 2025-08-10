@@ -1,5 +1,6 @@
 using ActorFramework.Abstractions;
 using ActorFramework.Exceptions;
+using ActorFramework.Models;
 using ActorFramework.Runtime.Orchestration;
 
 using Microsoft.AspNetCore.Mvc;
@@ -56,7 +57,7 @@ public class ActorController(ILogger<ActorController> logger, Director<TestMessa
             {
                 try
                 {
-                    await director.Send($"actor{i}", new TestMessage(_jitter.Next(100, 500)));
+                    await director.Send($"actor{i}", new TestMessage(_jitter.Next(100, 5000)));
                 }
                 catch (ActorIdNotFoundException ex)
                 {
@@ -113,7 +114,7 @@ public record TestMessage(int Delay) : IMessage;
 
 public class TestActor(ILogger logger, Func<bool> shouldThrow) : IActor<TestMessage>
 {
-    public async Task OnReceive(TestMessage message, ActorContext<TestMessage> context)
+    public async Task OnReceive(TestMessage message, ActorContext<TestMessage> context, CancellationToken cancellationToken)
     {
         if (context.ActorId == "actor4" && shouldThrow())
         {
@@ -122,10 +123,8 @@ public class TestActor(ILogger logger, Func<bool> shouldThrow) : IActor<TestMess
 
         var delayMs = message.Delay;
 
-        logger.LogInformation("RX: {ActorId} {Delay} ms", context.ActorId, delayMs);
-
         // Simulate some work
-        await Task.Delay(delayMs);
+        await Task.Delay(delayMs, cancellationToken);
 
         logger.LogInformation("Processed: {ActorId} {Delay} ms", context.ActorId, delayMs);
     }

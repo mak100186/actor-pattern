@@ -33,7 +33,6 @@ public static class DependencyExtensions
     }
 }
 
-
 public class ActorRegistrationBuilder
 {
     internal List<Type> MessageTypes { get; } = [];

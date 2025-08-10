@@ -1,4 +1,4 @@
-﻿using ActorFramework.Runtime.Orchestration;
+﻿using ActorFramework.Models;
 
 namespace ActorFramework.Abstractions;
 
@@ -13,7 +13,7 @@ public interface IActor<TMessage>
     /// </summary>
     /// <param name="message">The message instance to process.</param>
     /// <param name="context">Provides identity and system access for the current actor.</param>
-    Task OnReceive(TMessage message, ActorContext<TMessage> context);
+    Task OnReceive(TMessage message, ActorContext<TMessage> context, CancellationToken cancellationToken);
 
     Task OnError(string actorId, TMessage message, Exception exception);
 }

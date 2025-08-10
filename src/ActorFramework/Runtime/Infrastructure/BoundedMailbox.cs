@@ -6,8 +6,6 @@ using ActorFramework.Configs;
 using ActorFramework.Constants;
 using ActorFramework.Exceptions;
 
-using Microsoft.Extensions.Options;
-
 namespace ActorFramework.Runtime.Infrastructure;
 
 /// <summary>
@@ -26,12 +24,12 @@ public sealed class BoundedMailbox<TMessage> : Mailbox<TMessage>
     /// Defines how the mailbox handles overflow when full.
     private OverflowPolicy OverflowPolicy { get; }
     
-    public BoundedMailbox(IOptions<ActorFrameworkOptions> actorFrameworkOptions)
+    public BoundedMailbox(ActorFrameworkOptions actorFrameworkOptions)
     {
-        Capacity = actorFrameworkOptions?.Value?.MailboxCapacity
+        Capacity = actorFrameworkOptions?.MailboxCapacity
                    ?? ActorFrameworkConstants.DefaultMailboxCapacity;
 
-        OverflowPolicy = actorFrameworkOptions?.Value?.MailboxOverflowPolicy
+        OverflowPolicy = actorFrameworkOptions?.MailboxOverflowPolicy
                          ?? ActorFrameworkConstants.DefaultOverflowPolicy;
 
         var options = new BoundedChannelOptions(Capacity)

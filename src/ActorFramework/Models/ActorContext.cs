@@ -1,6 +1,7 @@
 ﻿using ActorFramework.Abstractions;
+using ActorFramework.Runtime.Orchestration;
 
-namespace ActorFramework.Runtime.Orchestration;
+namespace ActorFramework.Models;
 
 /// <summary>
 /// Provides contextual information and capabilities to an actor instance.
