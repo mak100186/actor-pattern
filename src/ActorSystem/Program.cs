@@ -2,19 +2,24 @@ using ActorFramework.Extensions;
 
 using ActorSystem.Controllers;
 
-var builder = WebApplication.CreateBuilder(args);
+using Serilog;
+
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+builder.Host.UseSerilog((ctx, lc) => lc
+    .ReadFrom.Configuration(ctx.Configuration));
 
 // Add services to the container.
 builder.Services.AddActorFramework(builder.Configuration, actorBuilder =>
 {
     actorBuilder.AddMessage<TestMessage>();
 });
-            
+
 //Add controllers and OpenAPI support
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
