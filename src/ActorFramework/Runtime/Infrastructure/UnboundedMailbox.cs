@@ -12,7 +12,7 @@ namespace ActorFramework.Runtime.Infrastructure;
 /// - Simplest path for PoC or non-critical actors
 /// </summary>
 /// <typeparam name="TMessage"></typeparam>
-public sealed class UnboundedMailbox<TMessage> : Mailbox<TMessage>, IMailbox<TMessage> 
+public sealed class UnboundedMailbox<TMessage> : Mailbox<TMessage>
     where TMessage : class, IMessage
 {
     public UnboundedMailbox() => 
@@ -21,22 +21,15 @@ public sealed class UnboundedMailbox<TMessage> : Mailbox<TMessage>, IMailbox<TMe
             SingleReader = true, 
             SingleWriter = false
         });
-    private long _pending;
-
-    public int Count => (int)Interlocked.Read(ref _pending);
-
-    public void Start() { /* nothing to bootstrap */ }
-
-    public void Stop() => Channel.Writer.Complete();
-
-    public async ValueTask EnqueueAsync(TMessage message, CancellationToken cancellationToken = default)
+    
+    public override async ValueTask EnqueueAsync(TMessage message, CancellationToken cancellationToken)
     {
         await Channel.Writer.WriteAsync(message, cancellationToken)
             .ConfigureAwait(false);
         Interlocked.Increment(ref _pending);
     }
 
-    public async IAsyncEnumerable<TMessage> Dequeue([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public override async IAsyncEnumerable<TMessage> Dequeue([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await foreach (var msg in Channel.Reader.ReadAllAsync(cancellationToken)
                            .ConfigureAwait(false))
@@ -45,6 +38,4 @@ public sealed class UnboundedMailbox<TMessage> : Mailbox<TMessage>, IMailbox<TMe
             yield return msg;
         }
     }
-
-    public void Dispose() => Stop();
 }

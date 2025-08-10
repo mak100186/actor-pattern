@@ -17,7 +17,7 @@ namespace ActorFramework.Runtime.Infrastructure;
 /// - Control overflow semantics
 /// </summary>
 /// <typeparam name="TMessage"></typeparam>
-public sealed class BoundedMailbox<TMessage> : Mailbox<TMessage>, IMailbox<TMessage> 
+public sealed class BoundedMailbox<TMessage> : Mailbox<TMessage>
     where TMessage : class, IMessage
 {
     /// Maximum number of messages the mailbox can hold.
@@ -25,11 +25,7 @@ public sealed class BoundedMailbox<TMessage> : Mailbox<TMessage>, IMailbox<TMess
 
     /// Defines how the mailbox handles overflow when full.
     private OverflowPolicy OverflowPolicy { get; }
-
-    public int Count => (int)Interlocked.Read(ref _pending);
-
-    private long _pending;
-
+    
     public BoundedMailbox(IOptions<ActorFrameworkOptions> actorFrameworkOptions)
     {
         Capacity = actorFrameworkOptions?.Value?.MailboxCapacity
@@ -52,12 +48,8 @@ public sealed class BoundedMailbox<TMessage> : Mailbox<TMessage>, IMailbox<TMess
         };
         Channel = System.Threading.Channels.Channel.CreateBounded<TMessage>(options);
     }
-
-    public void Start() { /* no extra bootstrapping */ }
-
-    public void Stop() => Channel.Writer.Complete();
-
-    public async ValueTask EnqueueAsync(TMessage message, CancellationToken cancellationToken = default)
+    
+    public override async ValueTask EnqueueAsync(TMessage message, CancellationToken cancellationToken)
     {
         if (Channel.Writer.TryWrite(message))
         {
@@ -74,7 +66,7 @@ public sealed class BoundedMailbox<TMessage> : Mailbox<TMessage>, IMailbox<TMess
         Interlocked.Increment(ref _pending);
     }
 
-    public async IAsyncEnumerable<TMessage> Dequeue([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public override async IAsyncEnumerable<TMessage> Dequeue([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         await foreach (var msg in Channel.Reader.ReadAllAsync(cancellationToken)
                            .ConfigureAwait(false))
@@ -84,6 +76,4 @@ public sealed class BoundedMailbox<TMessage> : Mailbox<TMessage>, IMailbox<TMess
         }
 
     }
-
-    public void Dispose() => Stop();
 }

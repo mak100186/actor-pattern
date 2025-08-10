@@ -34,8 +34,8 @@ public class ActorController(ILogger<ActorController> logger, Director<TestMessa
         return Ok("Actors spawned");
     }
 
-    [HttpGet("FlipHandler")]
-    public IActionResult FlipHandler()
+    [HttpGet("ShouldThrowException")]
+    public IActionResult ShouldThrowException()
     {
         shouldThrow = !shouldThrow;
         return Ok(shouldThrow);
@@ -73,37 +73,39 @@ public class ActorController(ILogger<ActorController> logger, Director<TestMessa
         return Ok("Messages sent.");
     }
 
-    [HttpGet("MailboxStatuses")]
-    public IActionResult MailboxStatuses()
+    [HttpGet("WorkspaceState")]
+    public IActionResult WorkspaceState()
     {
-        var statuses = director.GetMailboxStatuses();
+        var statuses = director.GetRegistryState();
         return Ok(statuses);
     }
 
     [HttpGet("ReleaseActors")]
     public IActionResult ReleaseActors()
     {
-        var statuses = director.ReleaseActors(actorState =>
-        {
-            if (actorState.IsPaused)
-            {
-                return false; // Do not release paused actors
-            }
-
-            if (actorState.Mailbox.Count > 0)
-            {
-                return false; // Do not release actors with pending messages
-            }
-
-            if (actorState.HasReceivedMessageWithin(TimeSpan.FromMilliseconds(1500)))
-            {
-                return false; // Do not release actors that have received messages recently
-            }
-
-            return true; // Release actors that are not paused and have no pending messages
-        });
+        var statuses = director.ReleaseActors(ShouldReleaseActors);
 
         return Ok(statuses);
+    }
+
+    private static bool ShouldReleaseActors(ActorContext<TestMessage> actorContext)
+    {
+        if (actorContext.IsPaused)
+        {
+            return false; // Do not release paused actors
+        }
+
+        if (actorContext.PendingMessagesCount > 0)
+        {
+            return false; // Do not release actors with pending messages
+        }
+
+        if (actorContext.HasReceivedMessageWithin(TimeSpan.FromMilliseconds(1500)))
+        {
+            return false; // Do not release actors that have received messages recently
+        }
+
+        return true; // Release actors that are not paused and have no pending messages
     }
 }
 
@@ -126,5 +128,13 @@ public class TestActor(ILogger logger, Func<bool> shouldThrow) : IActor<TestMess
         await Task.Delay(delayMs);
 
         logger.LogInformation("Processed: {ActorId} {Delay} ms", context.ActorId, delayMs);
+    }
+
+    /// <inheritdoc />
+    public Task OnError(string actorId, TestMessage message, Exception exception)
+    {
+        //actor id can be used to resume if needed
+        logger.LogError(exception, "Error processing message {@Message} on actor [{ActorId}]", message, actorId);
+        return Task.CompletedTask;
     }
 }

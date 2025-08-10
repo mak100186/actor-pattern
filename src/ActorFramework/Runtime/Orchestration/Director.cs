@@ -36,7 +36,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
     /// <summary>
     /// Returns the number of pending messages in each actor’s mailbox.
     /// </summary>
-    public IReadOnlyDictionary<string, int> GetMailboxStatuses() => _registry
+    public IReadOnlyDictionary<string, int> GetRegistryState() => _registry
         .ToDictionary(
             kvp => kvp.Key,
             kvp => kvp.Value.Mailbox.Count);
@@ -49,7 +49,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
     /// <param name="onMessageError">Client can provide a callback and may choose to react to it. If not provided then a default one is used to log the details.
     /// Note: the pause is a <see cref="ManualResetEventSlim"/> that has to be resumed to allow the process to continue.
     /// </param>
-    public void RegisterActor(string actorId, Func<IActor<TMessage>> actorFactory, Action<IMessage, Exception>? onMessageError = null, Dictionary<string, object>? metadata = null)
+    public void RegisterActor(string actorId, Func<IActor<TMessage>> actorFactory)
     {
         ThrowIfDisposed();
 
@@ -82,21 +82,11 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
             Context = context,
             CancellationSource = cts,
             RetryPolicy = retryPolicy,
-            ShouldStopOnError = options.Value.ShouldStopOnUnhandledException,
-            OnMessageError = onMessageError ?? ((message, ex) =>
-            {
-                logger.LogError(ex, UnhandledExceptionInActorProcessingMessage,
-                    actorId, message.GetType().Name);
-            })
+            ShouldStopOnError = options.Value.ShouldStopOnUnhandledException
         };
 
         actorState.DispatchTask = Task.Run(() => DispatchLoopAsync(actor, context, mailbox, actorState, cts.Token));
-
-        if (metadata != null)
-        {
-            actorState.Metadata = metadata;
-        }
-
+        
         _registry[actorId] = actorState;
     }
     
@@ -130,12 +120,19 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
     /// Allows release of actors based on a custom condition. This logic is outside the scope of the director so that it can be used in different scenarios, such as testing or cleanup.
     /// </summary>
     /// <param name="shouldReleaseHandler">Allows the client to study the Actor details like metadata and mailbox count and then decide whether it can be released. There could be messages getting processed while this method is called. So its upto the client to decide.</param>
-    public int ReleaseActors(Func<ActorState, bool> shouldReleaseHandler)
+    public int ReleaseActors(Func<ActorContext<TMessage>, bool> shouldReleaseHandler)
     {
         var countReleased = 0;
         foreach (var (actorId, actorState) in _registry)
         {
-            if (shouldReleaseHandler(actorState) && _registry.TryRemove(actorId, out _))
+            //provide the latest stats to the actor context
+            actorState.Context.UpdateStats(
+                actorState.IsPaused,
+                actorState.Mailbox.Count,
+                actorState.LastMessageReceivedTimestamp);
+
+            //see if client wants to release this actor
+            if (shouldReleaseHandler(actorState.Context) && _registry.TryRemove(actorId, out _))
             {
                 actorState.Dispose();
                 countReleased++;
@@ -186,35 +183,28 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
                             actorState.LastMessageReceivedTimestamp = DateTimeOffset.UtcNow;
 
                             // ConfigureAwait so that you don’t capture a SynchronizationContext or “sticky” context from the caller
-                            await actor.OnReceive(message, context)
-                                .ConfigureAwait(false);
+                            await actor.OnReceive(message, context).ConfigureAwait(false);
                         },
                         token);
                 }
                 catch (Exception ex)
                 {
                     // max retries exceeded
-                    actorState.OnMessageError?.Invoke(message, ex);
+                    await actorState.Actor.OnError(context.ActorId, message, ex);
 
                     if (actorState.ShouldStopOnError)
                     {
-                        logger.LogError(
-                            ex,
-                            ActorFaultedAfterMaxRetriesPausing,
-                            context.ActorId);
+                        logger.LogError(ex, ActorFaultedAfterMaxRetriesPausing, context.ActorId);
 
                         actorState.IsPaused = true;
                         actorState.PauseGate.Reset(); //closes the gate
-                        break; // stop processing further messages
+                        break; 
+                        //STOP:  no processing further messages
                     }
-                    else
-                    {
-                        logger.LogWarning(
-                            ex,
-                            ActorSkippingFailedMessageContinuing,
-                            context.ActorId);
-                        continue;  // swallow and move to next message
-                    }
+
+                    logger.LogWarning(ex, ActorSkippingFailedMessageContinuing, context.ActorId);
+
+                    //CONTINUE: swallow and move to next message
                 }
             }
         }
@@ -227,7 +217,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
     /// <summary>
     /// Internal holder of per-actor resources.
     /// </summary>
-    public sealed class ActorState : IDisposable
+    private sealed class ActorState : IDisposable
     {
         public IMailbox<TMessage> Mailbox { get; init; }
         public IActor<TMessage> Actor { get; init; }
@@ -243,26 +233,58 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
         //used for retry policies and error handling
         public AsyncRetryPolicy RetryPolicy { get; init; }
         public bool ShouldStopOnError { get; init; }
-        public Action<IMessage, Exception> OnMessageError { get; init; }
 
         public DateTimeOffset LastMessageReceivedTimestamp { get; set; } = DateTimeOffset.MinValue;
 
-        //client can use this to store additional metadata about the actor
-        public Dictionary<string, object> Metadata { get; set; } = new();
+        private async Task DisposeInternal()
+        {
+            try
+            {
+                try
+                {
+                    await CancellationSource.CancelAsync();
+                }
+                catch
+                {
+                    //ignore cancellation exceptions
+                }
+
+                Task.WhenAll(DispatchTask).GetAwaiter().GetResult();
+
+                Mailbox.Stop();
+                CancellationSource.Dispose();
+                PauseGate.Dispose();
+            }
+            catch
+            {
+                //ignore exceptions during shutdown
+            }
+        }
+
+        private bool _disposed;
 
         public void Dispose()
         {
-            Mailbox.Stop();
-            CancellationSource.Cancel();
-
-            Task.WhenAll(DispatchTask).GetAwaiter().GetResult();
-
-            CancellationSource.Dispose();
-            
-            PauseGate.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
-        public bool HasReceivedMessageWithin(TimeSpan timeSpan) => DateTimeOffset.UtcNow - LastMessageReceivedTimestamp < timeSpan;
+        private void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+
+            if (disposing)
+            {
+                DisposeInternal().GetAwaiter().GetResult();
+            }
+        }
+
+        ~ActorState() => Dispose(false); // Finalizer calls Dispose(false)
     }
 
     #region Disposal
@@ -272,34 +294,45 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
     /// <summary>
     /// Gracefully stops all actors and tears down internal resources.
     /// </summary>
-    private void Shutdown()
+    private async Task ShutdownAsync()
     {
         if (_disposed)
         {
             return;
         }
 
-        logger.LogInformation(ShuttingDownDirectorCancellingActors);
-        foreach (var actorState in _registry.Values)
+        try
         {
-            actorState.CancellationSource.Cancel();
+            logger.LogInformation(ShuttingDownDirectorCancellingActors);
+            foreach (var actorState in _registry.Values)
+            {
+                try
+                {
+                    await actorState.CancellationSource.CancelAsync();
+                }
+                catch
+                {
+                    //ignore
+                }
+            }
+
+            await Task.WhenAll(_registry.Values.Select(r => r.DispatchTask));
+
+            logger.LogInformation(DispatchLoopsCompletedDisposingMailboxes);
+
+            foreach (var actorState in _registry.Values)
+            {
+                actorState.Mailbox.Dispose();
+                actorState.CancellationSource.Dispose();
+                actorState.PauseGate.Dispose();
+            }
+
+            _registry.Clear();
         }
-
-        Task.WhenAll(_registry.Values
-                .Select(r => r.DispatchTask))
-            .GetAwaiter()
-            .GetResult();
-
-        logger.LogInformation(DispatchLoopsCompletedDisposingMailboxes);
-
-        foreach (var actorState in _registry.Values)
+        catch
         {
-            actorState.Mailbox.Dispose();
-            actorState.CancellationSource.Dispose();
-            actorState.PauseGate.Dispose();
+            //ignore exceptions during shutdown
         }
-
-        _registry.Clear();
     }
 
     ~Director() => Dispose(false); // Finalizer calls Dispose(false)
@@ -322,7 +355,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
 
         if (disposing)
         {
-            Shutdown();
+            ShutdownAsync().GetAwaiter().GetResult();
         }
     }
 

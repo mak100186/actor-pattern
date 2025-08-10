@@ -14,4 +14,6 @@ public interface IActor<TMessage>
     /// <param name="message">The message instance to process.</param>
     /// <param name="context">Provides identity and system access for the current actor.</param>
     Task OnReceive(TMessage message, ActorContext<TMessage> context);
+
+    Task OnError(string actorId, TMessage message, Exception exception);
 }

@@ -18,17 +18,35 @@ public sealed class ActorContext<TMessage>
     /// </summary>
     public Director<TMessage> Director { get; }
 
+    /// <summary>
+    /// Determines if the actor is currently paused: faulted, waiting for recovery, or intentionally paused.
+    /// </summary>
+    public bool IsPaused { get; private set; }
+
+    /// <summary>
+    /// Gets the number of messages currently pending in the actor's mailbox.
+    /// This is useful for monitoring and flow control.
+    /// </summary>
+    public int PendingMessagesCount { get; private set; }
+
+    /// <summary>
+    /// The timestamp of the last message received by this actor.
+    /// </summary>
+    public DateTimeOffset LastMessageReceivedTimestamp { get; private set; }
+
+    public bool HasReceivedMessageWithin(TimeSpan timeSpan) => DateTimeOffset.UtcNow - LastMessageReceivedTimestamp < timeSpan;
+
     internal ActorContext(string actorId, Director<TMessage> director)
     {
         ActorId = actorId;
         Director = director;
+        
     }
 
-    /// <summary>
-    /// Sends a message to another actor by its identifier.
-    /// </summary>
-    /// <param name="targetActorId">Identifier of the target actor.</param>
-    /// <param name="message">The message to send.</param>
-    public ValueTask Send(string targetActorId, TMessage message) =>
-        Director.Send(targetActorId, message);
+    internal void UpdateStats(bool isPaused, int pendingMessagesCount, DateTimeOffset lastMessageReceivedTimestamp)
+    {
+        IsPaused = isPaused;
+        PendingMessagesCount = pendingMessagesCount;
+        LastMessageReceivedTimestamp = lastMessageReceivedTimestamp;
+    }
 }
