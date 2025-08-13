@@ -11,3 +11,5 @@ public class MailboxTypeNotHandledException(MailboxType type, string source) : E
 public class ActorIdAlreadyRegisteredException(string actorId) : Exception($"Actor '{actorId}' is already registered.");
 
 public class ActorIdNotFoundException(string actorId) : Exception($"Actor '{actorId}' not found.");
+
+public class ActorPausedException(string actorId) : Exception($"Actor '{actorId}' is in a paused state and cannot accept new messages.");

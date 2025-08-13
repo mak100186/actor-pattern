@@ -11,7 +11,7 @@ namespace ActorSystem.Controllers;
 [Route("[controller]")]
 public class ActorController(ILogger<ActorController> logger, Director<TestMessage> director) : ControllerBase
 {
-    private static readonly Random _jitter = new Random();
+    private static readonly Random _jitter = new();
     private const int MaxActorCount = 5;
     private const int MaxMessageCount = 5;
 
@@ -20,7 +20,7 @@ public class ActorController(ILogger<ActorController> logger, Director<TestMessa
     [HttpGet("SpawnActors")]
     public IActionResult SpawnActors()
     {
-        for (var i = 0; i < MaxActorCount; i++)
+        for (int i = 0; i < MaxActorCount; i++)
         {
             try
             {
@@ -44,20 +44,24 @@ public class ActorController(ILogger<ActorController> logger, Director<TestMessa
 
 
     [HttpGet("ResumeActor")]
-    public IActionResult ResumeActor(string actorId) => 
+    public IActionResult ResumeActor(string actorId) =>
         Ok(director.ResumeActor(actorId));
 
     [HttpGet("SendMessages")]
     public async Task<IActionResult> SendMessages()
     {
-        var errors = new List<string>();
-        for (var i = 0; i < MaxActorCount; i++)
+        List<string> errors = new();
+        for (int i = 0; i < MaxActorCount; i++)
         {
-            for (var j = 0; j < MaxMessageCount; j++)
+            for (int j = 0; j < MaxMessageCount; j++)
             {
                 try
                 {
                     await director.Send($"actor{i}", new TestMessage(_jitter.Next(100, 5000)));
+                }
+                catch (ActorPausedException ex)
+                {
+                    errors.Add(ex.Message);
                 }
                 catch (ActorIdNotFoundException ex)
                 {
@@ -77,14 +81,14 @@ public class ActorController(ILogger<ActorController> logger, Director<TestMessa
     [HttpGet("WorkspaceState")]
     public IActionResult WorkspaceState()
     {
-        var statuses = director.GetRegistryState();
+        IReadOnlyDictionary<string, RegistryState> statuses = director.GetRegistryState();
         return Ok(statuses);
     }
 
     [HttpGet("ReleaseActors")]
     public IActionResult ReleaseActors()
     {
-        var statuses = director.ReleaseActors(ShouldReleaseActors);
+        int statuses = director.ReleaseActors(ShouldReleaseActors);
 
         return Ok(statuses);
     }
@@ -121,7 +125,7 @@ public class TestActor(ILogger logger, Func<bool> shouldThrow) : IActor<TestMess
             throw new Exception("Testing actor pause on error");
         }
 
-        var delayMs = message.Delay;
+        int delayMs = message.Delay;
 
         // Simulate some work
         await Task.Delay(delayMs, cancellationToken);

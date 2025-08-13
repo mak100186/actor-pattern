@@ -46,7 +46,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
         {
             throw new ActorIdAlreadyRegisteredException(actorId);
         }
-        
+
         IMailbox<TMessage> mailbox = Options.MailboxType switch
         {
             MailboxType.Unbounded => new UnboundedMailbox<TMessage>(),
@@ -56,12 +56,12 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
 
         mailbox.Start();
 
-        var actor = actorFactory();
-        var context = new ActorContext<TMessage>(actorId, this);
-        var cts = new CancellationTokenSource();
-        var retryPolicy = GetRetryPolicy(actorId);
+        IActor<TMessage> actor = actorFactory();
+        ActorContext<TMessage> context = new(actorId, this);
+        CancellationTokenSource cts = new();
+        Polly.Retry.AsyncRetryPolicy retryPolicy = GetRetryPolicy(actorId);
 
-        var actorState = new ActorState
+        ActorState actorState = new()
         {
             Mailbox = mailbox,
             Actor = actor,
@@ -72,7 +72,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
         };
 
         actorState.DispatchTask = Task.Run(() => DispatchLoopAsync(actor, context, mailbox, actorState, cts.Token));
-        
+
         Registry[actorId] = actorState;
     }
 
@@ -85,7 +85,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
     {
         ThrowIfDisposed();
 
-        if (!Registry.TryGetValue(actorId, out var actorState))
+        if (!Registry.TryGetValue(actorId, out ActorState? actorState))
         {
             return string.Format(ActorNotFoundFormat, actorId);
         }
@@ -96,7 +96,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
         }
 
         Logger.LogInformation(ResumingActor, actorId);
-        
+
         actorState.Resume();
 
         if (actorState.DispatchTask.IsCompleted)
@@ -113,8 +113,8 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
     /// <param name="shouldReleaseHandler">Allows the client to study the Actor details like metadata and mailbox count and then decide whether it can be released. There could be messages getting processed while this method is called. So its up to the client to decide.</param>
     public int ReleaseActors(Func<ActorContext<TMessage>, bool> shouldReleaseHandler)
     {
-        var countReleased = 0;
-        foreach (var (actorId, actorState) in Registry)
+        int countReleased = 0;
+        foreach ((string actorId, ActorState actorState) in Registry)
         {
             //provide the latest stats to the actor context
             actorState.Context.UpdateStats(
@@ -142,12 +142,16 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
     {
         ThrowIfDisposed();
 
-        if (!Registry.TryGetValue(actorId, out var actorState))
+        if (!Registry.TryGetValue(actorId, out ActorState? actorState))
         {
             throw new ActorIdNotFoundException(actorId);
         }
 
-        //don't enqueue if actor is paused
+        if (actorState.IsPaused)
+        {
+            throw new ActorPausedException(actorId);
+        }
+
         //It blocks the current thread until the event is signaled via Set().
         //If the event is already set, Wait() returns immediately.
         actorState.PauseGate.Wait(actorState.CancellationSource.Token);
