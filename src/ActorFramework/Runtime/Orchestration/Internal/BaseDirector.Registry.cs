@@ -39,7 +39,6 @@ public abstract partial class BaseDirector<TMessage>
 
         //used for retry policies and error handling
         public AsyncRetryPolicy RetryPolicy { get; init; }
-        public bool ShouldStopOnError { get; init; }
 
         public DateTimeOffset LastMessageReceivedTimestamp { get; private set; } = DateTimeOffset.MinValue;
 
@@ -63,12 +62,9 @@ public abstract partial class BaseDirector<TMessage>
             PausedAt = null;
         }
 
-        public void RegisterMessageReceived()
-        {
-            LastMessageReceivedTimestamp = DateTimeOffset.UtcNow;
-        }
+        public void RegisterLastMessageReceivedTimestamp() => LastMessageReceivedTimestamp = DateTimeOffset.UtcNow;
 
-    #region Disposal
+        #region Disposal
 
         private async Task DisposeInternal()
         {

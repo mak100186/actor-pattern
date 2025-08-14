@@ -2,6 +2,7 @@
 
 public enum MailboxType
 {
+    ConcurrentQueue,
     Unbounded,
     Bounded
 }

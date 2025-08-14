@@ -1,10 +1,12 @@
-﻿using System.Runtime.CompilerServices;
-using System.Threading.Channels;
+﻿using System.Threading.Channels;
 
 using ActorFramework.Abstractions;
 using ActorFramework.Configs;
 using ActorFramework.Constants;
 using ActorFramework.Exceptions;
+using ActorFramework.Runtime.Infrastructure.Internal;
+
+using Microsoft.Extensions.Logging;
 
 namespace ActorFramework.Runtime.Infrastructure;
 
@@ -24,7 +26,7 @@ public sealed class BoundedMailbox<TMessage> : Mailbox<TMessage>
     /// Defines how the mailbox handles overflow when full.
     private OverflowPolicy OverflowPolicy { get; }
     
-    public BoundedMailbox(ActorFrameworkOptions actorFrameworkOptions)
+    public BoundedMailbox(ActorFrameworkOptions actorFrameworkOptions, ILogger logger) : base(logger)
     {
         Capacity = actorFrameworkOptions?.MailboxCapacity
                    ?? ActorFrameworkConstants.DefaultMailboxCapacity;
@@ -41,6 +43,7 @@ public sealed class BoundedMailbox<TMessage> : Mailbox<TMessage>
                 OverflowPolicy.BlockProducer => BoundedChannelFullMode.Wait,
                 OverflowPolicy.DropOldest => BoundedChannelFullMode.DropOldest,
                 OverflowPolicy.DropNewest => BoundedChannelFullMode.DropNewest,
+                OverflowPolicy.FailFast => BoundedChannelFullMode.DropWrite,
                 _ => throw new OverflowPolicyNotHandledException(OverflowPolicy, nameof(BoundedMailbox<TMessage>))
             }
         };
@@ -51,7 +54,7 @@ public sealed class BoundedMailbox<TMessage> : Mailbox<TMessage>
     {
         if (Channel.Writer.TryWrite(message))
         {
-            Interlocked.Increment(ref _pending);
+            Interlocked.Increment(ref Pending);
             return;
         }
 
@@ -61,17 +64,20 @@ public sealed class BoundedMailbox<TMessage> : Mailbox<TMessage>
         }
         
         await Channel.Writer.WriteAsync(message, cancellationToken);
-        Interlocked.Increment(ref _pending);
+        Interlocked.Increment(ref Pending);
     }
 
-    public override async IAsyncEnumerable<TMessage> Dequeue([EnumeratorCancellation] CancellationToken cancellationToken)
+    public override async IAsyncEnumerable<MailboxTransaction<TMessage>> DequeueTransactionally(CancellationToken cancellationToken)
     {
         await foreach (var msg in Channel.Reader.ReadAllAsync(cancellationToken)
                            .ConfigureAwait(false))
         {
-            Interlocked.Decrement(ref _pending);
-            yield return msg;
+            yield return new MailboxTransaction<TMessage>(
+                null,
+                msg,
+                Logger,
+                onCommit: () => Interlocked.Decrement(ref Pending),
+                onRollback: () => { });
         }
-
     }
 }

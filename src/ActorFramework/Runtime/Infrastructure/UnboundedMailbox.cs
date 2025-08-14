@@ -1,7 +1,9 @@
-﻿using System.Runtime.CompilerServices;
-using System.Threading.Channels;
+﻿using System.Threading.Channels;
 
 using ActorFramework.Abstractions;
+using ActorFramework.Runtime.Infrastructure.Internal;
+
+using Microsoft.Extensions.Logging;
 
 namespace ActorFramework.Runtime.Infrastructure;
 
@@ -15,7 +17,7 @@ namespace ActorFramework.Runtime.Infrastructure;
 public sealed class UnboundedMailbox<TMessage> : Mailbox<TMessage>
     where TMessage : class, IMessage
 {
-    public UnboundedMailbox() => 
+    public UnboundedMailbox(ILogger logger): base(logger) => 
         Channel = System.Threading.Channels.Channel.CreateUnbounded<TMessage>(new()
         {
             SingleReader = true, 
@@ -24,18 +26,21 @@ public sealed class UnboundedMailbox<TMessage> : Mailbox<TMessage>
     
     public override async ValueTask EnqueueAsync(TMessage message, CancellationToken cancellationToken)
     {
-        await Channel.Writer.WriteAsync(message, cancellationToken)
-            .ConfigureAwait(false);
-        Interlocked.Increment(ref _pending);
+        await Channel.Writer.WriteAsync(message, cancellationToken).ConfigureAwait(false);
+        Interlocked.Increment(ref Pending);
     }
 
-    public override async IAsyncEnumerable<TMessage> Dequeue([EnumeratorCancellation] CancellationToken cancellationToken)
+    public override async IAsyncEnumerable<MailboxTransaction<TMessage>> DequeueTransactionally(CancellationToken cancellationToken)
     {
         await foreach (var msg in Channel.Reader.ReadAllAsync(cancellationToken)
                            .ConfigureAwait(false))
         {
-            Interlocked.Decrement(ref _pending);
-            yield return msg;
+            yield return new MailboxTransaction<TMessage>(
+                null,
+                msg,
+                Logger,
+                onCommit: () => Interlocked.Decrement(ref Pending),
+                onRollback: () => { });
         }
     }
 }

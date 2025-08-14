@@ -15,9 +15,7 @@ public static class ActorFrameworkConstants
     /// <summary>
     /// By default, how to handle message overflow in the mailbox.
     /// </summary>
-
     public const OverflowPolicy DefaultOverflowPolicy = OverflowPolicy.BlockProducer;
-
 
     /// <summary>
     /// By default, the type of mailbox used for actors.
@@ -36,12 +34,16 @@ public static class ActorFrameworkConstants
 
     // Logging templates used across the Actor Framework
     public const string ActorRetryingOnMessage = "Actor '{ActorId}' retry {Attempt}/{RetryCount} on message";
-    public const string UnhandledExceptionInActorProcessingMessage = "Unhandled exception in actor {ActorId} processing message {MessageType}";
+    public const string CommitFailedAsMessageWasNotAtHeadOfQueue = "Commit failed: message was not at head of queue.";
     public const string ActorFaultedAfterMaxRetriesPausing = "Actor '{ActorId}' faulted on message after max retries; pausing";
-    public const string ActorSkippingFailedMessageContinuing = "Actor '{ActorId}' skipping failed message and continuing";
+    public const string ActorSkippingFailedMessage = "Actor '{ActorId}' skipping failed message and continuing";
+    public const string ActorRollbackFailedMessage = "Rolling back transaction for actor {ActorId} due to unhandled exception.";
     public const string ResumingActor = "Resuming actor '{ActorId}'";
     public const string ShuttingDownDirectorCancellingActors = "Shutting down Director, cancelling actors...";
     public const string DispatchLoopsCompletedDisposingMailboxes = "Dispatch loops completed, disposing mailboxes...";
+    public const string EnqueueOpBlockedAsMailboxAtCapacity = "Producer blocked as Mailbox is at capacity.";
+    public const string EnqueueOpDropNewest = "Dropping incoming message due to overflow policy";
+    public const string EnqueueOpDropOldest = "Dropping oldest message due to overflow policy";
 
     // User-facing messages and formats
     public const string ActorNotFoundFormat = "Actor '{0}' not found.";

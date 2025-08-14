@@ -46,8 +46,10 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
 
         IMailbox<TMessage> mailbox = Options.MailboxType switch
         {
-            MailboxType.Unbounded => new UnboundedMailbox<TMessage>(),
-            MailboxType.Bounded => new BoundedMailbox<TMessage>(Options),
+            MailboxType.Unbounded => new UnboundedMailbox<TMessage>(logger),
+            MailboxType.Bounded => new BoundedMailbox<TMessage>(Options, logger),
+            MailboxType.ConcurrentQueue => new ConcurrentQueueMailbox<TMessage>(Options, Logger),
+
             _ => throw new MailboxTypeNotHandledException(Options.MailboxType, nameof(Director<TMessage>))
         };
 
@@ -64,11 +66,10 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
             Actor = actor,
             Context = context,
             CancellationSource = cts,
-            RetryPolicy = retryPolicy,
-            ShouldStopOnError = Options.ShouldStopOnUnhandledException
+            RetryPolicy = retryPolicy
         };
 
-        actorState.DispatchTask = Task.Run(() => DispatchLoopAsync(actor, context, mailbox, actorState, cts.Token));
+        actorState.DispatchTask = Task.Run(() => DispatchLoopTransactionalAsync(actor, context, mailbox, actorState, cts.Token));
 
         Registry[actorId] = actorState;
     }
@@ -98,7 +99,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
 
         if (actorState.DispatchTask.IsCompleted)
         {
-            actorState.DispatchTask = Task.Run(() => DispatchLoopAsync(actorState.Actor, actorState.Context, actorState.Mailbox, actorState, actorState.CancellationSource.Token));
+            actorState.DispatchTask = Task.Run(() => DispatchLoopTransactionalAsync(actorState.Actor, actorState.Context, actorState.Mailbox, actorState, actorState.CancellationSource.Token));
         }
 
         return ActorResumed;
