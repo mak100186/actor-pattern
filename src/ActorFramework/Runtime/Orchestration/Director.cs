@@ -33,9 +33,6 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
     /// </summary>
     /// <param name="actorId">Unique key for this actor instance.</param>
     /// <param name="actorFactory">Factory creating the actor implementation.</param>
-    /// <param name="onMessageError">Client can provide a callback and may choose to react to it. If not provided then a default one is used to log the details.
-    /// Note: the pause is a <see cref="ManualResetEventSlim"/> that has to be resumed to allow the process to continue.
-    /// </param>
     public void RegisterActor(string actorId, Func<IActor<TMessage>> actorFactory)
     {
         ThrowIfDisposed();
@@ -56,10 +53,10 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
 
         mailbox.Start();
 
-        IActor<TMessage> actor = actorFactory();
+        var actor = actorFactory();
         ActorContext<TMessage> context = new(actorId, this);
         CancellationTokenSource cts = new();
-        Polly.Retry.AsyncRetryPolicy retryPolicy = GetRetryPolicy(actorId);
+        var retryPolicy = GetRetryPolicy(actorId);
 
         ActorState actorState = new()
         {
@@ -85,7 +82,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
     {
         ThrowIfDisposed();
 
-        if (!Registry.TryGetValue(actorId, out ActorState? actorState))
+        if (!Registry.TryGetValue(actorId, out var actorState))
         {
             return string.Format(ActorNotFoundFormat, actorId);
         }
@@ -113,8 +110,8 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
     /// <param name="shouldReleaseHandler">Allows the client to study the Actor details like metadata and mailbox count and then decide whether it can be released. There could be messages getting processed while this method is called. So its up to the client to decide.</param>
     public int ReleaseActors(Func<ActorContext<TMessage>, bool> shouldReleaseHandler)
     {
-        int countReleased = 0;
-        foreach ((string actorId, ActorState actorState) in Registry)
+        var countReleased = 0;
+        foreach (var (actorId, actorState) in Registry)
         {
             //provide the latest stats to the actor context
             actorState.Context.UpdateStats(
@@ -142,7 +139,7 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
     {
         ThrowIfDisposed();
 
-        if (!Registry.TryGetValue(actorId, out ActorState? actorState))
+        if (!Registry.TryGetValue(actorId, out var actorState))
         {
             throw new ActorIdNotFoundException(actorId);
         }

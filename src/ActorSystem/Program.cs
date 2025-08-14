@@ -4,7 +4,7 @@ using ActorSystem.Controllers;
 
 using Serilog;
 
-WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((ctx, lc) => lc
     .ReadFrom.Configuration(ctx.Configuration));
@@ -19,7 +19,7 @@ builder.Services.AddActorFramework(builder.Configuration, actorBuilder =>
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-WebApplication app = builder.Build();
+var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {

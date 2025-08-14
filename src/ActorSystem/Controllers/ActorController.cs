@@ -20,7 +20,7 @@ public class ActorController(ILogger<ActorController> logger, Director<TestMessa
     [HttpGet("SpawnActors")]
     public IActionResult SpawnActors()
     {
-        for (int i = 0; i < MaxActorCount; i++)
+        for (var i = 0; i < MaxActorCount; i++)
         {
             try
             {
@@ -50,10 +50,10 @@ public class ActorController(ILogger<ActorController> logger, Director<TestMessa
     [HttpGet("SendMessages")]
     public async Task<IActionResult> SendMessages()
     {
-        List<string> errors = new();
-        for (int i = 0; i < MaxActorCount; i++)
+        List<string> errors = [];
+        for (var i = 0; i < MaxActorCount; i++)
         {
-            for (int j = 0; j < MaxMessageCount; j++)
+            for (var j = 0; j < MaxMessageCount; j++)
             {
                 try
                 {
@@ -81,14 +81,14 @@ public class ActorController(ILogger<ActorController> logger, Director<TestMessa
     [HttpGet("WorkspaceState")]
     public IActionResult WorkspaceState()
     {
-        IReadOnlyDictionary<string, RegistryState> statuses = director.GetRegistryState();
+        var statuses = director.GetRegistryState();
         return Ok(statuses);
     }
 
     [HttpGet("ReleaseActors")]
     public IActionResult ReleaseActors()
     {
-        int statuses = director.ReleaseActors(ShouldReleaseActors);
+        var statuses = director.ReleaseActors(ShouldReleaseActors);
 
         return Ok(statuses);
     }
@@ -122,10 +122,10 @@ public class TestActor(ILogger logger, Func<bool> shouldThrow) : IActor<TestMess
     {
         if (context.ActorId == "actor4" && shouldThrow())
         {
-            throw new Exception("Testing actor pause on error");
+            throw new ActorPausedException(context.ActorId);
         }
 
-        int delayMs = message.Delay;
+        var delayMs = message.Delay;
 
         // Simulate some work
         await Task.Delay(delayMs, cancellationToken);

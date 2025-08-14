@@ -16,7 +16,7 @@ public static class ExceptionExtensions
     /// Null if <paramref name="exception"/> is null; otherwise
     /// "{ExceptionType} occurred at {LocalTime}: {Exception.Message}".
     /// </returns>
-    public static string? GetExceptionText(this Exception? exception, DateTimeOffset? pausedAtUtc)
+    public static string GetExceptionText(this Exception? exception, DateTimeOffset? pausedAtUtc)
     {
         if (exception is null || pausedAtUtc is null)
         {
