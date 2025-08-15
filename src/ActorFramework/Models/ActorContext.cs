@@ -48,4 +48,9 @@ public sealed class ActorContext
         PendingMessagesCount = pendingMessagesCount;
         LastMessageReceivedTimestamp = lastMessageReceivedTimestamp;
     }
+
+    public ActorContextExternal ToExternal()
+    {
+        return new ActorContextExternal(Director.Identifier, ActorId, IsPaused, PendingMessagesCount, LastMessageReceivedTimestamp);
+    }
 }

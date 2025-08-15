@@ -2,7 +2,7 @@
 
 namespace ActorFramework.Abstractions;
 
-public interface IDirector : IDisposable, IAsyncDisposable
+public interface IDirector : IDisposable, IAsyncDisposable, IIdentifiable
 {
     int TotalQueuedMessageCount { get; }
     DateTimeOffset LastActive { get; }

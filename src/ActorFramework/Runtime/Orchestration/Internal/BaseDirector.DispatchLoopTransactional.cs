@@ -18,7 +18,7 @@ public abstract partial class BaseDirector
         {
             await foreach (Infrastructure.Internal.MailboxTransaction mailboxTransaction in mailbox.DequeueAsync(cancellationToken))
             {
-                Logger.LogInformation("Director {Identifier} running on Thread {ThreadId}", Identifier, Thread.CurrentThread.ManagedThreadId);
+                Logger.LogInformation("Director {Identifier} running on Thread {ThreadId}", Identifier, Environment.CurrentManagedThreadId);
 
                 context.Director.RegisterLastActiveTimestamp();
 
@@ -34,7 +34,7 @@ public abstract partial class BaseDirector
                             actorState.RegisterLastMessageReceivedTimestamp();
 
                             // ConfigureAwait so that you don’t capture a SynchronizationContext or “sticky” context from the caller
-                            await actor.OnReceive(mailboxTransaction.Message, context, token).ConfigureAwait(false);
+                            await actor.OnReceive(mailboxTransaction.Message, context.ToExternal(), token).ConfigureAwait(false);
                         },
                         cancellationToken
                     );

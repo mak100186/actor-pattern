@@ -1,7 +1,8 @@
 using ActorFramework.AspNetCore.Extensions;
 using ActorFramework.Extensions;
 
-using ActorSystem.Controllers;
+using ActorSystem.Actors;
+using ActorSystem.Messages;
 
 using Serilog;
 
