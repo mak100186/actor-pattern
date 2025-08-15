@@ -13,6 +13,7 @@ public interface IActor<TMessage>
     /// </summary>
     /// <param name="message">The message instance to process.</param>
     /// <param name="context">Provides identity and system access for the current actor.</param>
+    /// <param name="cancellationToken">The token for the process</param>
     Task OnReceive(TMessage message, ActorContext<TMessage> context, CancellationToken cancellationToken);
 
     Task OnError(string actorId, TMessage message, Exception exception);

@@ -14,7 +14,7 @@ namespace ActorFramework.Runtime.Infrastructure;
 /// - Simplest path for PoC or non-critical actors
 /// </summary>
 /// <typeparam name="TMessage"></typeparam>
-public sealed class UnboundedMailbox<TMessage> : Mailbox<TMessage>
+public sealed class UnboundedMailbox<TMessage> : ChannelBasedMailbox<TMessage>
     where TMessage : class, IMessage
 {
     public UnboundedMailbox(ILogger logger): base(logger) => 
@@ -30,17 +30,12 @@ public sealed class UnboundedMailbox<TMessage> : Mailbox<TMessage>
         Interlocked.Increment(ref Pending);
     }
 
-    public override async IAsyncEnumerable<MailboxTransaction<TMessage>> DequeueTransactionally(CancellationToken cancellationToken)
+    public override async IAsyncEnumerable<MailboxTransaction<TMessage>> DequeueAsync(CancellationToken cancellationToken)
     {
         await foreach (var msg in Channel.Reader.ReadAllAsync(cancellationToken)
                            .ConfigureAwait(false))
         {
-            yield return new MailboxTransaction<TMessage>(
-                null,
-                msg,
-                Logger,
-                onCommit: () => Interlocked.Decrement(ref Pending),
-                onRollback: () => { });
+            yield return new(null, msg, OnCommitInternal, OnRollbackInternal);
         }
     }
 }

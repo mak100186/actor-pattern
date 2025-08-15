@@ -1,11 +1,8 @@
-﻿using System.Threading.Channels;
-
-using ActorFramework.Abstractions;
-using ActorFramework.Runtime.Infrastructure.Internal;
+﻿using ActorFramework.Abstractions;
 
 using Microsoft.Extensions.Logging;
 
-namespace ActorFramework.Runtime.Infrastructure;
+namespace ActorFramework.Runtime.Infrastructure.Internal;
 
 /// <summary>
 /// Base functionality for mailboxes that manage message queues for actors.
@@ -13,7 +10,6 @@ namespace ActorFramework.Runtime.Infrastructure;
 public abstract class Mailbox<TMessage>(ILogger logger) : IMailbox<TMessage>
     where TMessage : class, IMessage
 {
-    protected Channel<TMessage> Channel = null!;
     protected readonly ILogger Logger = logger;
 
     protected long Pending;
@@ -22,11 +18,17 @@ public abstract class Mailbox<TMessage>(ILogger logger) : IMailbox<TMessage>
 
     public void Start() { /* no extra bootstrapping */ }
 
-    public virtual void Stop() => Channel.Writer.Complete();
+    public virtual void Stop() { /* no extra bootstrapping */ }
 
     public abstract ValueTask EnqueueAsync(TMessage message, CancellationToken cancellationToken);
 
-    public abstract IAsyncEnumerable<MailboxTransaction<TMessage>> DequeueTransactionally(CancellationToken cancellationToken);
+    public abstract IAsyncEnumerable<MailboxTransaction<TMessage>> DequeueAsync(CancellationToken cancellationToken);
+
+    // Commit the transaction by removing the message from the queue
+    protected virtual void OnCommitInternal(TMessage message) => Interlocked.Decrement(ref Pending);
+
+    // Release the signal to unblock any waiting Dequeue calls
+    protected virtual void OnRollbackInternal(TMessage message) { }
 
     public void Dispose()
     {

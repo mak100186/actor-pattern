@@ -12,12 +12,10 @@ using static ActorFramework.Constants.ActorFrameworkConstants;
 
 namespace ActorFramework.Runtime.Orchestration;
 
-
-
 /// <summary>
 /// Central orchestrator that registers actors, routes messages, and manages lifecycles.
 /// </summary>
-public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, ILogger<Director<TMessage>> logger) : BaseDirector<TMessage>(options, logger)
+public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, ILogger<Director<TMessage>> logger) : Internal.BaseDirector<TMessage>(options, logger)
     where TMessage : class, IMessage
 {
     /// <summary>

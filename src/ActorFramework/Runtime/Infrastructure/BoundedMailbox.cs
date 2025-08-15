@@ -17,7 +17,7 @@ namespace ActorFramework.Runtime.Infrastructure;
 /// - Control overflow semantics
 /// </summary>
 /// <typeparam name="TMessage"></typeparam>
-public sealed class BoundedMailbox<TMessage> : Mailbox<TMessage>
+public sealed class BoundedMailbox<TMessage> : ChannelBasedMailbox<TMessage>
     where TMessage : class, IMessage
 {
     /// Maximum number of messages the mailbox can hold.
@@ -67,17 +67,12 @@ public sealed class BoundedMailbox<TMessage> : Mailbox<TMessage>
         Interlocked.Increment(ref Pending);
     }
 
-    public override async IAsyncEnumerable<MailboxTransaction<TMessage>> DequeueTransactionally(CancellationToken cancellationToken)
+    public override async IAsyncEnumerable<MailboxTransaction<TMessage>> DequeueAsync(CancellationToken cancellationToken)
     {
         await foreach (var msg in Channel.Reader.ReadAllAsync(cancellationToken)
                            .ConfigureAwait(false))
         {
-            yield return new MailboxTransaction<TMessage>(
-                null,
-                msg,
-                Logger,
-                onCommit: () => Interlocked.Decrement(ref Pending),
-                onRollback: () => { });
+            yield return new(null, msg, OnCommitInternal, OnRollbackInternal);
         }
     }
 }

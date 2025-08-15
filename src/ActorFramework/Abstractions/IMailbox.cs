@@ -29,7 +29,7 @@ public interface IMailbox<TMessage> : IDisposable where TMessage : class, IMessa
     /// Returns an async stream of messages for the actor to process. Dequeue the next message, waiting if none are available.
     /// </summary>
     /// <param name="cancellationToken">Cancel waiting on shutdown or timeouts.</param>
-    IAsyncEnumerable<MailboxTransaction<TMessage>> DequeueTransactionally(CancellationToken cancellationToken = default);
+    IAsyncEnumerable<MailboxTransaction<TMessage>> DequeueAsync(CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Number of messages currently buffered and waiting to be processed.

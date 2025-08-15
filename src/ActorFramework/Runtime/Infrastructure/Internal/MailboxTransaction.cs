@@ -1,9 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
 using ActorFramework.Abstractions;
-using ActorFramework.Constants;
-
-using Microsoft.Extensions.Logging;
 
 namespace ActorFramework.Runtime.Infrastructure.Internal;
 
@@ -12,37 +9,34 @@ public sealed class MailboxTransaction<TMessage>
 {
     private readonly ConcurrentQueue<TMessage>? _queue;
     private readonly TMessage _message;
-    private readonly ILogger _logger;
-    private readonly Action _onCommit;
-    private readonly Action _onRollback;
+    private readonly Action<TMessage> _onCommit;
+    private readonly Action<TMessage> _onRollback;
 
-    internal MailboxTransaction(ConcurrentQueue<TMessage>? queue, TMessage message, ILogger logger, Action onCommit, Action onRollback) 
+    internal MailboxTransaction(ConcurrentQueue<TMessage>? queue, TMessage message, Action<TMessage> onCommit, Action<TMessage> onRollback) 
     {
         _queue = queue;
         _message = message;
-        _logger = logger;
         _onCommit = onCommit;
         _onRollback = onRollback;
     }
 
     public TMessage Message => _message;
 
-    public Task CommitAsync()
+    public Task<bool> CommitAsync()
     {
         //non-transactional mailboxes (like UnboundedMailbox) will not have a queue, so we can commit immediately
         if (_queue == null || (_queue.TryDequeue(out var dequeued) && ReferenceEquals(dequeued, _message)))
         {
-            _onCommit();
-            return Task.CompletedTask;
+            _onCommit(_message);
+            return Task.FromResult(true);
         }
-
-        _logger.LogWarning(ActorFrameworkConstants.CommitFailedAsMessageWasNotAtHeadOfQueue);
-        return Task.CompletedTask;
+        
+        return Task.FromResult(false);
     }
 
     public Task RollbackAsync()
     {
-        _onRollback();
+        _onRollback(_message);
         return Task.CompletedTask;
     }
 }

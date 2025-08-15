@@ -3,7 +3,7 @@ using ActorFramework.Constants;
 
 using Microsoft.Extensions.Logging;
 
-namespace ActorFramework.Runtime.Orchestration;
+namespace ActorFramework.Runtime.Orchestration.Internal;
 
 public abstract partial class BaseDirector<TMessage>: IDisposable, IAsyncDisposable
     where TMessage : class, IMessage

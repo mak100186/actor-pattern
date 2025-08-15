@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
 
-namespace ActorFramework.Runtime.Orchestration;
+namespace ActorFramework.Runtime.Orchestration.Internal;
 
 /// <summary>
 /// Contains the dispatch loop logic for actors and retry policies.
@@ -16,12 +16,12 @@ public abstract partial class BaseDirector<TMessage>
     where TMessage : class, IMessage
 {
     protected AsyncRetryPolicy GetRetryPolicy(string actorId) => Policy
-        .Handle<Exception>()
+        .Handle<Exception>(ex => ex is not OperationCanceledException && ex is not TaskCanceledException)
         .RetryAsync(
             Options.RetryCountIfExceptionOccurs,
-            onRetry: (ex, attempt, ctxPol) =>
+            onRetry: (ex, attemptNumber, _) =>
             {
-                Logger.LogWarning(ex, ActorFrameworkConstants.ActorRetryingOnMessage, actorId, attempt, Options.RetryCountIfExceptionOccurs);
+                Logger.LogWarning(ex, ActorFrameworkConstants.ActorRetryingOnMessage, actorId, attemptNumber, Options.RetryCountIfExceptionOccurs);
             });
 }
 

@@ -5,7 +5,7 @@ using ActorFramework.Models;
 
 using Polly.Retry;
 
-namespace ActorFramework.Runtime.Orchestration;
+namespace ActorFramework.Runtime.Orchestration.Internal;
 
 /// <summary>
 /// Contains the registry of actors and their states.

@@ -42,8 +42,9 @@ public static class ActorFrameworkConstants
     public const string ShuttingDownDirectorCancellingActors = "Shutting down Director, cancelling actors...";
     public const string DispatchLoopsCompletedDisposingMailboxes = "Dispatch loops completed, disposing mailboxes...";
     public const string EnqueueOpBlockedAsMailboxAtCapacity = "Producer blocked as Mailbox is at capacity.";
-    public const string EnqueueOpDropNewest = "Dropping incoming message due to overflow policy";
-    public const string EnqueueOpDropOldest = "Dropping oldest message due to overflow policy";
+    public const string EnqueueOpDropNewest = "Dropping incoming message due to overflow policy: {@Message}";
+    public const string EnqueueOpDropOldest = "Dropping oldest message due to overflow policy: {@Message}";
+    public const string EnqueueOpMailboxFull = "Message not added as mailbox is full: {@Message}";
 
     // User-facing messages and formats
     public const string ActorNotFoundFormat = "Actor '{0}' not found.";

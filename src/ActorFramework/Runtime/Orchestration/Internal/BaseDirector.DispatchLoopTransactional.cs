@@ -4,7 +4,7 @@ using ActorFramework.Models;
 
 using Microsoft.Extensions.Logging;
 
-namespace ActorFramework.Runtime.Orchestration;
+namespace ActorFramework.Runtime.Orchestration.Internal;
 
 /// <summary>
 /// Contains the dispatch loop logic for actors and retry policies.
@@ -13,14 +13,14 @@ namespace ActorFramework.Runtime.Orchestration;
 public abstract partial class BaseDirector<TMessage>
     where TMessage : class, IMessage
 {
-    protected async Task DispatchLoopTransactionalAsync(IActor<TMessage> actor, ActorContext<TMessage> context, IMailbox<TMessage> mailbox, ActorState actorState, CancellationToken ct)
+    protected async Task DispatchLoopTransactionalAsync(IActor<TMessage> actor, ActorContext<TMessage> context, IMailbox<TMessage> mailbox, ActorState actorState, CancellationToken cancellationToken)
     {
         try
         {
-            await foreach (var mailboxTransaction in mailbox.DequeueTransactionally(ct))
+            await foreach (var mailboxTransaction in mailbox.DequeueAsync(cancellationToken))
             {
                 // Block here if actor is paused
-                actorState.PauseGate.Wait(ct);
+                actorState.PauseGate.Wait(cancellationToken);
 
                 try
                 {
@@ -33,11 +33,14 @@ public abstract partial class BaseDirector<TMessage>
                             // ConfigureAwait so that you don’t capture a SynchronizationContext or “sticky” context from the caller
                             await actor.OnReceive(mailboxTransaction.Message, context, token).ConfigureAwait(false);
                         },
-                        ct
+                        cancellationToken
                     );
 
                     //commit the transaction after successful processing
-                    await mailboxTransaction.CommitAsync();
+                    if (!await mailboxTransaction.CommitAsync())
+                    {
+                        Logger.LogWarning(ActorFrameworkConstants.CommitFailedAsMessageWasNotAtHeadOfQueue);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -60,7 +63,10 @@ public abstract partial class BaseDirector<TMessage>
                         logger.LogWarning(ex, ActorFrameworkConstants.ActorSkippingFailedMessage, context.ActorId);
 
                         //commit the transaction even after unsuccessful processing
-                        await mailboxTransaction.CommitAsync();
+                        if (!await mailboxTransaction.CommitAsync())
+                        {
+                            Logger.LogWarning(ActorFrameworkConstants.CommitFailedAsMessageWasNotAtHeadOfQueue);
+                        }
                     }
                 }
             }

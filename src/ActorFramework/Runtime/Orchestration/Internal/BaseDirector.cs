@@ -4,7 +4,7 @@ using ActorFramework.Configs;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-namespace ActorFramework.Runtime.Orchestration;
+namespace ActorFramework.Runtime.Orchestration.Internal;
 
 public abstract partial class BaseDirector<TMessage>(IOptions<ActorFrameworkOptions> options, ILogger<Director<TMessage>> logger)
     where TMessage : class, IMessage
