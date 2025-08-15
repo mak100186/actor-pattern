@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 
 using ActorFramework.Abstractions;
+using ActorFramework.Base;
 using ActorFramework.Models;
 
 using Polly.Retry;
@@ -13,8 +14,7 @@ namespace ActorFramework.Runtime.Orchestration.Internal;
 /// <typeparam name="TMessage"></typeparam>
 /// <param name="options"></param>
 /// <param name="logger"></param>
-public abstract partial class BaseDirector<TMessage>
-    where TMessage : class, IMessage
+public abstract partial class BaseDirector
 {
     // In-memory actorState of all actors
     protected readonly ConcurrentDictionary<string, ActorState> Registry = new();
@@ -22,11 +22,11 @@ public abstract partial class BaseDirector<TMessage>
     /// <summary>
     /// Internal holder of per-actor resources.
     /// </summary>
-    protected sealed class ActorState : IDisposable, IAsyncDisposable
+    protected sealed class ActorState : IdentifiableBase, IDisposable, IAsyncDisposable
     {
-        public IMailbox<TMessage> Mailbox { get; init; }
-        public IActor<TMessage> Actor { get; init; }
-        public ActorContext<TMessage> Context { get; init; }
+        public IMailbox Mailbox { get; init; }
+        public IActor Actor { get; init; }
+        public ActorContext Context { get; init; }
         public CancellationTokenSource CancellationSource { get; init; }
         public Task DispatchTask { get; set; }
 

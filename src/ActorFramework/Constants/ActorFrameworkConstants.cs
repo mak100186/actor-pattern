@@ -8,6 +8,16 @@ namespace ActorFramework.Constants;
 public static class ActorFrameworkConstants
 {
     /// <summary>
+    /// The time in seconds after which the idle director would be pruned to conserve resources.
+    /// </summary>
+    public const int DefaultDirectorIdleThresholdForPruningInSec = 30;
+
+    /// <summary>
+    /// The max number of directors inside a workspace. Each director is a thread that schedules actors on it.
+    /// </summary>
+    public const int DefaultMaxDegreeOfParallelism = 10;
+
+    /// <summary>
     /// Fallback mailbox capacity if no configuration is provided.
     /// </summary>
     public const int DefaultMailboxCapacity = 1000;

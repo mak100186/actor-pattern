@@ -1,13 +1,11 @@
 ﻿using ActorFramework.Abstractions;
-using ActorFramework.Runtime.Orchestration;
 
 namespace ActorFramework.Models;
 
 /// <summary>
 /// Provides contextual information and capabilities to an actor instance.
 /// </summary>
-public sealed class ActorContext<TMessage>
-    where TMessage : class, IMessage
+public sealed class ActorContext
 {
     /// <summary>
     /// The unique identifier of the actor.
@@ -17,7 +15,7 @@ public sealed class ActorContext<TMessage>
     /// <summary>
     /// The central orchestrator managing this actor.
     /// </summary>
-    public Director<TMessage> Director { get; }
+    public IDirector Director { get; }
 
     /// <summary>
     /// Determines if the actor is currently paused: faulted, waiting for recovery, or intentionally paused.
@@ -37,11 +35,11 @@ public sealed class ActorContext<TMessage>
 
     public bool HasReceivedMessageWithin(TimeSpan timeSpan) => DateTimeOffset.UtcNow - LastMessageReceivedTimestamp < timeSpan;
 
-    internal ActorContext(string actorId, Director<TMessage> director)
+    internal ActorContext(string actorId, IDirector director)
     {
         ActorId = actorId;
         Director = director;
-        
+
     }
 
     internal void UpdateStats(bool isPaused, int pendingMessagesCount, DateTimeOffset lastMessageReceivedTimestamp)

@@ -1,5 +1,4 @@
-﻿using ActorFramework.Abstractions;
-using ActorFramework.Constants;
+﻿using ActorFramework.Constants;
 
 using Microsoft.Extensions.Logging;
 
@@ -12,8 +11,7 @@ namespace ActorFramework.Runtime.Orchestration.Internal;
 /// Contains the dispatch loop logic for actors and retry policies.
 /// </summary>
 /// <typeparam name="TMessage"></typeparam>
-public abstract partial class BaseDirector<TMessage> 
-    where TMessage : class, IMessage
+public abstract partial class BaseDirector
 {
     protected AsyncRetryPolicy GetRetryPolicy(string actorId) => Policy
         .Handle<Exception>(ex => ex is not OperationCanceledException && ex is not TaskCanceledException)

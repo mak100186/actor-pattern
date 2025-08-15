@@ -4,6 +4,7 @@ using ActorFramework.Exceptions;
 using ActorFramework.Extensions;
 using ActorFramework.Models;
 using ActorFramework.Runtime.Infrastructure;
+using ActorFramework.Runtime.Orchestration.Internal;
 
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -15,23 +16,56 @@ namespace ActorFramework.Runtime.Orchestration;
 /// <summary>
 /// Central orchestrator that registers actors, routes messages, and manages lifecycles.
 /// </summary>
-public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, ILogger<Director<TMessage>> logger) : Internal.BaseDirector<TMessage>(options, logger)
-    where TMessage : class, IMessage
+public sealed class Director(IOptions<ActorFrameworkOptions> options, ILogger<Director> logger) : BaseDirector(options, logger), IDirector
 {
+    public DateTimeOffset LastActive { get; private set; } = DateTimeOffset.MinValue;
+
+    public int TotalQueuedMessageCount => Registry.Sum(kvp => kvp.Value.Mailbox.Count);
+
+    public void RegisterLastActiveTimestamp() => LastActive = DateTimeOffset.UtcNow;
+
+    public bool IsBusy()
+    {
+        if (Registry.Values.Any(x => x.IsPaused))
+            return true;
+
+        if (Registry.Values.Any(x => x.Mailbox.Count > 0))
+            return true;
+
+        return false;
+    }
+
     /// <summary>
     /// Returns the number of pending messages in each actor’s mailbox.
     /// </summary>
-    public IReadOnlyDictionary<string, RegistryState<TMessage>> GetRegistryState() => Registry
-        .ToDictionary(
-            kvp => kvp.Key,
-            kvp => new RegistryState<TMessage>(kvp.Value.IsPaused, kvp.Value.Mailbox.GetState(), kvp.Value.LastMessageReceivedTimestamp.ToRelativeTimeWithLocal(), kvp.Value.LastException.GetExceptionText(kvp.Value.PausedAt)));
+    public DirectorStateExternal GetState()
+    {
+        ActorStateExternal[] actorStates = [.. Registry.Select(kvp =>
+                new ActorStateExternal(
+                    kvp.Value.Identifier,
+                    kvp.Key,
+                    kvp.Value.Mailbox.GetState(),
+                    kvp.Value.IsPaused,
+                    kvp.Value.LastMessageReceivedTimestamp.ToRelativeTimeWithLocal(),
+                    kvp.Value.LastException.GetExceptionText(kvp.Value.PausedAt)))];
+
+        return new DirectorStateExternal
+        (
+            Identifier,
+            actorStates.Length,
+            TotalQueuedMessageCount,
+            actorStates,
+            IsBusy(),
+            LastActive.ToRelativeTimeWithLocal()
+        );
+    }
 
     /// <summary>
     /// Registers an actor under a unique identifier, spins up its mailbox and dispatch loop.
     /// </summary>
     /// <param name="actorId">Unique key for this actor instance.</param>
     /// <param name="actorFactory">Factory creating the actor implementation.</param>
-    public void RegisterActor(string actorId, Func<IActor<TMessage>> actorFactory)
+    public void RegisterActor(string actorId, Func<IActor> actorFactory)
     {
         ThrowIfDisposed();
 
@@ -42,19 +76,19 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
             throw new ActorIdAlreadyRegisteredException(actorId);
         }
 
-        IMailbox<TMessage> mailbox = Options.MailboxType switch
+        IMailbox mailbox = Options.MailboxType switch
         {
-            MailboxType.ConcurrentQueue => new ConcurrentQueueMailbox<TMessage>(Options, Logger),
+            MailboxType.ConcurrentQueue => new ConcurrentQueueMailbox(Options, Logger),
 
-            _ => throw new MailboxTypeNotHandledException(Options.MailboxType, nameof(Director<TMessage>))
+            _ => throw new MailboxTypeNotHandledException(Options.MailboxType, nameof(Director))
         };
 
         mailbox.Start();
 
-        var actor = actorFactory();
-        ActorContext<TMessage> context = new(actorId, this);
+        IActor actor = actorFactory();
+        ActorContext context = new(actorId, this);
         CancellationTokenSource cts = new();
-        var retryPolicy = GetRetryPolicy(actorId);
+        Polly.Retry.AsyncRetryPolicy retryPolicy = GetRetryPolicy(actorId);
 
         ActorState actorState = new()
         {
@@ -71,15 +105,22 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
     }
 
     /// <summary>
-    /// Resumes an actor that was previously paused. All queued messages will be processed.
+    /// Resumes all actors that were previously paused. All queued messages will be processed.
     /// </summary>
-    /// <param name="actorId"></param>
     /// <returns></returns>
-    public string ResumeActor(string actorId)
+    public void ResumeActors()
+    {
+        foreach (string actorId in Registry.Keys)
+        {
+            ResumeActor(actorId);
+        }
+    }
+
+    private string ResumeActor(string actorId)
     {
         ThrowIfDisposed();
 
-        if (!Registry.TryGetValue(actorId, out var actorState))
+        if (!Registry.TryGetValue(actorId, out ActorState? actorState))
         {
             return string.Format(ActorNotFoundFormat, actorId);
         }
@@ -102,41 +143,15 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
     }
 
     /// <summary>
-    /// Allows release of actors based on a custom condition. This logic is outside the scope of the director so that it can be used in different scenarios, such as testing or cleanup.
-    /// </summary>
-    /// <param name="shouldReleaseHandler">Allows the client to study the Actor details like metadata and mailbox count and then decide whether it can be released. There could be messages getting processed while this method is called. So its up to the client to decide.</param>
-    public int ReleaseActors(Func<ActorContext<TMessage>, bool> shouldReleaseHandler)
-    {
-        var countReleased = 0;
-        foreach (var (actorId, actorState) in Registry)
-        {
-            //provide the latest stats to the actor context
-            actorState.Context.UpdateStats(
-                actorState.IsPaused,
-                actorState.Mailbox.Count,
-                actorState.LastMessageReceivedTimestamp);
-
-            //see if client wants to release this actor
-            if (shouldReleaseHandler(actorState.Context) && Registry.TryRemove(actorId, out _))
-            {
-                actorState.Dispose();
-                countReleased++;
-            }
-        }
-
-        return countReleased;
-    }
-
-    /// <summary>
     /// Delivers a message to the specified actor’s mailbox.
     /// </summary>
     /// <param name="actorId">Target actor’s identifier.</param>
     /// <param name="message">The message to deliver.</param>
-    public ValueTask Send(string actorId, TMessage message)
+    public ValueTask Send(string actorId, IMessage message)
     {
         ThrowIfDisposed();
 
-        if (!Registry.TryGetValue(actorId, out var actorState))
+        if (!Registry.TryGetValue(actorId, out ActorState? actorState))
         {
             throw new ActorIdNotFoundException(actorId);
         }

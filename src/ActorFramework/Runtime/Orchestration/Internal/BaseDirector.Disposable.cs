@@ -1,14 +1,12 @@
-﻿using ActorFramework.Abstractions;
-using ActorFramework.Constants;
+﻿using ActorFramework.Constants;
 
 using Microsoft.Extensions.Logging;
 
 namespace ActorFramework.Runtime.Orchestration.Internal;
 
-public abstract partial class BaseDirector<TMessage>: IDisposable, IAsyncDisposable
-    where TMessage : class, IMessage
+public abstract partial class BaseDirector : IDisposable, IAsyncDisposable
 {
-    protected void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, typeof(Director<TMessage>));
+    protected void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, typeof(Director));
 
     private async Task DisposeInternal()
     {
@@ -20,7 +18,7 @@ public abstract partial class BaseDirector<TMessage>: IDisposable, IAsyncDisposa
         try
         {
             Logger.LogInformation(ActorFrameworkConstants.ShuttingDownDirectorCancellingActors);
-            foreach (var actorState in Registry.Values)
+            foreach (ActorState actorState in Registry.Values)
             {
                 try
                 {
@@ -36,7 +34,7 @@ public abstract partial class BaseDirector<TMessage>: IDisposable, IAsyncDisposa
 
             Logger.LogInformation(ActorFrameworkConstants.DispatchLoopsCompletedDisposingMailboxes);
 
-            foreach (var actorState in Registry.Values)
+            foreach (ActorState actorState in Registry.Values)
             {
                 actorState.Mailbox.Dispose();
                 actorState.CancellationSource.Dispose();

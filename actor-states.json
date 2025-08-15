@@ -1,0 +1,567 @@
+{
+  "identifier": "0198adde-8038-738c-8545-37e6b03aeb0f",
+  "directorCount": 5,
+  "directorStates": [
+    {
+      "identifier": "0198adde-8042-738b-8ff4-62cd3a03567d",
+      "actorCount": 2,
+      "totalMessages": 10,
+      "actorStates": [
+        {
+          "identifier": "0198adde-804e-751b-a8c3-9dc52b3190b4",
+          "actorId": "ContestActor",
+          "mailboxState": {
+            "pendingMessageCount": 5,
+            "messages": [
+              {
+                "$type": "contestMessage",
+                "key": "4677de9d-be28-0ee5-c6a7-37e688407612",
+                "feedProvider": "Pfannerstill LLC",
+                "name": "Handcrafted Plastic Soap",
+                "start": "2026-08-14T22:42:33.8711397+10:00",
+                "end": "2025-09-11T14:01:27.380251+10:00",
+                "delay": 3794
+              },
+              {
+                "$type": "contestMessage",
+                "key": "55e563c2-9566-17d2-fa92-ba932c455030",
+                "feedProvider": "Marquardt - Okuneva",
+                "name": "Gorgeous Granite Chicken",
+                "start": "2026-07-02T14:12:14.239338+10:00",
+                "end": "2025-09-06T23:03:19.4264995+10:00",
+                "delay": 1367
+              },
+              {
+                "$type": "contestMessage",
+                "key": "83a17780-d6ea-bee7-4cbd-dd8f89d4f429",
+                "feedProvider": "Sawayn and Sons",
+                "name": "Generic Wooden Pants",
+                "start": "2026-06-03T14:23:20.9775508+10:00",
+                "end": "2026-01-24T18:49:54.171808+10:00",
+                "delay": 1616
+              },
+              {
+                "$type": "contestMessage",
+                "key": "2cfa4f72-d15e-adf4-89b9-71f1f594962d",
+                "feedProvider": "Bahringer - Purdy",
+                "name": "Small Wooden Shirt",
+                "start": "2026-03-26T17:43:46.7044272+10:00",
+                "end": "2026-02-16T17:32:40.4809774+10:00",
+                "delay": 3516
+              },
+              {
+                "$type": "contestMessage",
+                "key": "6a8c1f4b-1876-4d61-e9b6-4870b21c3adf",
+                "feedProvider": "Keeling - Corkery",
+                "name": "Handmade Steel Chair",
+                "start": "2026-06-23T13:32:08.0138677+10:00",
+                "end": "2026-03-08T13:50:32.8045151+10:00",
+                "delay": 1940
+              }
+            ]
+          },
+          "isPaused": false,
+          "timestampText": "3 seconds ago at 11:15 PM",
+          "exceptionText": "No exceptions recorded"
+        },
+        {
+          "identifier": "0198adde-804f-70e0-a911-726ea95b53e8",
+          "actorId": "PropositionActor",
+          "mailboxState": {
+            "pendingMessageCount": 5,
+            "messages": [
+              {
+                "$type": "propositionMessage",
+                "key": "aa82bc9f-e848-ab98-ef2f-c7952a7b50bc",
+                "contestKey": "7835860d-5e9d-49f4-6258-0fa1bfc8ff51",
+                "name": "Grocery, Computers & Jewelery",
+                "propositionAvailability": 1,
+                "isOpen": true,
+                "delay": 4269
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "81099afe-b208-6171-0c45-d491922d1b61",
+                "contestKey": "17a5d2f7-aed8-971a-2e51-2f5e38772b1a",
+                "name": "Games",
+                "propositionAvailability": 0,
+                "isOpen": false,
+                "delay": 3242
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "32faed94-fe35-3817-6502-b277fb36a22f",
+                "contestKey": "5dc1fa0b-10cd-0fed-903c-9be9dc814b20",
+                "name": "Electronics & Home",
+                "propositionAvailability": 0,
+                "isOpen": false,
+                "delay": 2533
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "afd11ad5-03e4-3363-393f-5077ca790ecc",
+                "contestKey": "e5120c95-822a-13fe-418b-96a963d89f23",
+                "name": "Clothing",
+                "propositionAvailability": 1,
+                "isOpen": true,
+                "delay": 1945
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "151e1da5-8ebe-383f-8f33-7fa5e1a9bbba",
+                "contestKey": "590e4362-6c09-8323-05e4-0dc1e623cf93",
+                "name": "Clothing",
+                "propositionAvailability": 0,
+                "isOpen": true,
+                "delay": 3742
+              }
+            ]
+          },
+          "isPaused": false,
+          "timestampText": "3 seconds ago at 11:15 PM",
+          "exceptionText": "No exceptions recorded"
+        }
+      ],
+      "isBusy": true,
+      "timestampText": "3 seconds ago at 11:15 PM"
+    },
+    {
+      "identifier": "0198adde-a743-7905-a0af-88093bef642a",
+      "actorCount": 2,
+      "totalMessages": 9,
+      "actorStates": [
+        {
+          "identifier": "0198adde-a743-7aa0-8dce-e53662eb0396",
+          "actorId": "ContestActor",
+          "mailboxState": {
+            "pendingMessageCount": 3,
+            "messages": [
+              {
+                "$type": "contestMessage",
+                "key": "873f8801-c363-3df7-5f17-b9f368625cde",
+                "feedProvider": "Blick, Balistreri and Dickens",
+                "name": "Fantastic Plastic Shoes",
+                "start": "2026-01-19T17:02:30.6099536+10:00",
+                "end": "2026-04-20T15:02:09.8224688+10:00",
+                "delay": 3905
+              },
+              {
+                "$type": "contestMessage",
+                "key": "f2331d95-2ff8-8969-db8d-68674872d4a0",
+                "feedProvider": "Nienow - Wilderman",
+                "name": "Gorgeous Soft Table",
+                "start": "2026-04-08T06:09:19.9235552+10:00",
+                "end": "2025-11-01T05:53:37.6474939+10:00",
+                "delay": 1335
+              },
+              {
+                "$type": "contestMessage",
+                "key": "064e28fa-0f14-07a1-ca36-5270e108ce84",
+                "feedProvider": "Yost - Senger",
+                "name": "Intelligent Soft Shirt",
+                "start": "2026-08-02T07:41:00.6919533+10:00",
+                "end": "2026-05-09T07:21:13.3409766+10:00",
+                "delay": 330
+              }
+            ]
+          },
+          "isPaused": false,
+          "timestampText": "2 seconds ago at 11:15 PM",
+          "exceptionText": "No exceptions recorded"
+        },
+        {
+          "identifier": "0198adde-a743-792c-992a-c4bcf51fa8d5",
+          "actorId": "PropositionActor",
+          "mailboxState": {
+            "pendingMessageCount": 6,
+            "messages": [
+              {
+                "$type": "propositionMessage",
+                "key": "0fa4f83b-8dd0-405c-564b-083784952a84",
+                "contestKey": "08f9ed33-7b51-d56b-b6bd-2ec9241c212d",
+                "name": "Kids, Home & Grocery",
+                "propositionAvailability": 1,
+                "isOpen": true,
+                "delay": 3722
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "9c1dc05c-1e10-181b-d92a-1b5a56d42d72",
+                "contestKey": "f6c77ca3-7602-00b1-e9b7-fda9a6f8d6c2",
+                "name": "Automotive & Jewelery",
+                "propositionAvailability": 0,
+                "isOpen": false,
+                "delay": 679
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "9c782468-c3d9-cd1f-c97e-81e43952264c",
+                "contestKey": "5fcb3df4-cdf3-272e-fd9e-e9fee9f84bbb",
+                "name": "Outdoors, Outdoors & Shoes",
+                "propositionAvailability": 1,
+                "isOpen": true,
+                "delay": 3876
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "ec7feff5-4d7d-b3e4-f865-ae0b0bf63fe2",
+                "contestKey": "70f4d07d-218b-1d53-5741-00aa1929fefe",
+                "name": "Movies",
+                "propositionAvailability": 1,
+                "isOpen": false,
+                "delay": 4518
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "1d6c8295-6373-3d9d-31b3-8cff7c33aab9",
+                "contestKey": "a35b49e8-1f28-05e3-530c-024d77fbb999",
+                "name": "Grocery",
+                "propositionAvailability": 0,
+                "isOpen": true,
+                "delay": 4807
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "d5edc016-7b00-b6e7-086f-37e06e0a22d0",
+                "contestKey": "0463e860-7abe-2f6d-0ae8-3b5a93dcbe43",
+                "name": "Grocery & Books",
+                "propositionAvailability": 0,
+                "isOpen": true,
+                "delay": 1641
+              }
+            ]
+          },
+          "isPaused": false,
+          "timestampText": "3 seconds ago at 11:15 PM",
+          "exceptionText": "No exceptions recorded"
+        }
+      ],
+      "isBusy": true,
+      "timestampText": "2 seconds ago at 11:15 PM"
+    },
+    {
+      "identifier": "0198adde-a746-78f4-91a1-22e575e77a84",
+      "actorCount": 2,
+      "totalMessages": 9,
+      "actorStates": [
+        {
+          "identifier": "0198adde-a746-7bcd-b971-f2fd2cdffcea",
+          "actorId": "ContestActor",
+          "mailboxState": {
+            "pendingMessageCount": 5,
+            "messages": [
+              {
+                "$type": "contestMessage",
+                "key": "3b4c6994-de52-2fa4-e618-84018f7bcc25",
+                "feedProvider": "Ziemann, Boyer and O'Connell",
+                "name": "Ergonomic Metal Ball",
+                "start": "2026-05-28T13:57:08.5469361+10:00",
+                "end": "2025-10-08T15:59:22.6930146+10:00",
+                "delay": 3544
+              },
+              {
+                "$type": "contestMessage",
+                "key": "7c9a985b-f8fe-b39e-a998-fa66b6f20c59",
+                "feedProvider": "Hyatt - Spencer",
+                "name": "Handmade Granite Pants",
+                "start": "2026-07-08T23:31:26.1193908+10:00",
+                "end": "2025-12-29T14:35:40.9608013+10:00",
+                "delay": 1221
+              },
+              {
+                "$type": "contestMessage",
+                "key": "91d57a06-7073-29bd-7035-e0cea6f30c86",
+                "feedProvider": "O'Reilly, Durgan and Schaefer",
+                "name": "Unbranded Wooden Soap",
+                "start": "2025-10-16T03:57:52.023878+10:00",
+                "end": "2026-06-14T15:43:47.2612268+10:00",
+                "delay": 3413
+              },
+              {
+                "$type": "contestMessage",
+                "key": "9baedb79-adb4-4b1b-3174-ecf3c0477eca",
+                "feedProvider": "Metz, Farrell and Crooks",
+                "name": "Gorgeous Steel Shoes",
+                "start": "2026-04-08T19:10:07.9389061+10:00",
+                "end": "2026-05-31T11:31:57.4474431+10:00",
+                "delay": 3413
+              },
+              {
+                "$type": "contestMessage",
+                "key": "a7d9160e-488a-70cb-007c-3609eb465432",
+                "feedProvider": "Emard, Carroll and Brakus",
+                "name": "Fantastic Soft Computer",
+                "start": "2026-06-16T03:33:13.9131872+10:00",
+                "end": "2026-08-05T16:00:03.3835203+10:00",
+                "delay": 2081
+              }
+            ]
+          },
+          "isPaused": false,
+          "timestampText": "0 second ago at 11:15 PM",
+          "exceptionText": "No exceptions recorded"
+        },
+        {
+          "identifier": "0198adde-a746-77bc-8533-15d5a5f65988",
+          "actorId": "PropositionActor",
+          "mailboxState": {
+            "pendingMessageCount": 4,
+            "messages": [
+              {
+                "$type": "propositionMessage",
+                "key": "c8060b09-cc5b-1e10-7349-417f0fad168c",
+                "contestKey": "ad9bfcb8-53ee-c9ce-920f-86e27c79e886",
+                "name": "Electronics",
+                "propositionAvailability": 1,
+                "isOpen": false,
+                "delay": 4905
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "78707b9f-707f-e5d1-51ea-3067536f45b7",
+                "contestKey": "4397f2f2-6450-32be-9eb9-d83f2bb16b31",
+                "name": "Tools, Jewelery & Sports",
+                "propositionAvailability": 0,
+                "isOpen": true,
+                "delay": 541
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "a7f8b93f-225c-7f4b-105e-c1793636fe53",
+                "contestKey": "d672fad1-f9d0-7b57-47c3-4c0186192dcc",
+                "name": "Books",
+                "propositionAvailability": 1,
+                "isOpen": true,
+                "delay": 3997
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "8ad089c5-1ecf-f97c-3ce8-ec9b38439e55",
+                "contestKey": "67730497-8efb-9d10-8dd8-5417edcf846d",
+                "name": "Clothing, Toys & Health",
+                "propositionAvailability": 0,
+                "isOpen": true,
+                "delay": 3566
+              }
+            ]
+          },
+          "isPaused": false,
+          "timestampText": "3 seconds ago at 11:15 PM",
+          "exceptionText": "No exceptions recorded"
+        }
+      ],
+      "isBusy": true,
+      "timestampText": "0 second ago at 11:15 PM"
+    },
+    {
+      "identifier": "0198adde-a74e-71e1-ad3f-c5742376ba22",
+      "actorCount": 2,
+      "totalMessages": 9,
+      "actorStates": [
+        {
+          "identifier": "0198adde-a74e-78e8-b3c3-d0a143574e75",
+          "actorId": "ContestActor",
+          "mailboxState": {
+            "pendingMessageCount": 3,
+            "messages": [
+              {
+                "$type": "contestMessage",
+                "key": "fb76356d-c77c-11bd-fdac-7c092e233f2d",
+                "feedProvider": "Mante Inc",
+                "name": "Generic Wooden Chicken",
+                "start": "2026-02-02T15:54:28.3279657+10:00",
+                "end": "2025-10-10T10:46:29.0042914+10:00",
+                "delay": 3927
+              },
+              {
+                "$type": "contestMessage",
+                "key": "300cdf11-611b-7e2b-030b-71a0111786e5",
+                "feedProvider": "Runte - King",
+                "name": "Tasty Plastic Pizza",
+                "start": "2026-02-23T10:14:20.5565898+10:00",
+                "end": "2026-02-19T20:12:14.8626046+10:00",
+                "delay": 4954
+              },
+              {
+                "$type": "contestMessage",
+                "key": "5f7fa659-ff35-3636-4ae2-1c273816e694",
+                "feedProvider": "Hamill - Kutch",
+                "name": "Tasty Cotton Pizza",
+                "start": "2026-02-24T21:15:37.7281378+10:00",
+                "end": "2026-04-20T08:47:20.1860054+10:00",
+                "delay": 466
+              }
+            ]
+          },
+          "isPaused": false,
+          "timestampText": "0 second ago at 11:15 PM",
+          "exceptionText": "No exceptions recorded"
+        },
+        {
+          "identifier": "0198adde-a74e-7de2-ba21-e25d04b51ddb",
+          "actorId": "PropositionActor",
+          "mailboxState": {
+            "pendingMessageCount": 6,
+            "messages": [
+              {
+                "$type": "propositionMessage",
+                "key": "790c2bcf-0a46-fe34-260b-d035b1b199c9",
+                "contestKey": "2b719b04-8e53-684b-4c79-1c7b1d6e8798",
+                "name": "Jewelery",
+                "propositionAvailability": 0,
+                "isOpen": true,
+                "delay": 4777
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "8fd73ea1-25e6-2090-8015-bd1487545815",
+                "contestKey": "6c93f2f7-cb8b-f913-bc64-9cec51756de1",
+                "name": "Movies, Health & Games",
+                "propositionAvailability": 0,
+                "isOpen": false,
+                "delay": 772
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "4ae89365-67ea-e2ff-f66b-359ec487d7a1",
+                "contestKey": "a0ffc435-2634-983a-9686-d621be9b4c4b",
+                "name": "Beauty, Beauty & Games",
+                "propositionAvailability": 0,
+                "isOpen": false,
+                "delay": 4753
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "6f49396c-db5e-5a3a-fe1e-6d8649fb3fb4",
+                "contestKey": "4bc80fee-91f1-6c34-3092-c67e10027190",
+                "name": "Beauty, Computers & Shoes",
+                "propositionAvailability": 1,
+                "isOpen": true,
+                "delay": 1659
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "0b6e2dd4-6edb-d5bb-3771-cd7afc0bb295",
+                "contestKey": "96728183-0752-7058-5e81-d4fd04440c55",
+                "name": "Toys, Electronics & Clothing",
+                "propositionAvailability": 1,
+                "isOpen": true,
+                "delay": 708
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "bb476509-2397-c269-19e8-5a6bd9d16ced",
+                "contestKey": "db8e8ef0-9485-939c-26cf-45bd160122ff",
+                "name": "Music, Industrial & Sports",
+                "propositionAvailability": 1,
+                "isOpen": false,
+                "delay": 4610
+              }
+            ]
+          },
+          "isPaused": false,
+          "timestampText": "3 seconds ago at 11:15 PM",
+          "exceptionText": "No exceptions recorded"
+        }
+      ],
+      "isBusy": true,
+      "timestampText": "0 second ago at 11:15 PM"
+    },
+    {
+      "identifier": "0198adde-a752-7bdf-9bd8-5a9249e4d9b5",
+      "actorCount": 2,
+      "totalMessages": 7,
+      "actorStates": [
+        {
+          "identifier": "0198adde-a752-7a93-b532-77644f2b4a97",
+          "actorId": "ContestActor",
+          "mailboxState": {
+            "pendingMessageCount": 4,
+            "messages": [
+              {
+                "$type": "contestMessage",
+                "key": "ce316f91-b4d4-73ef-c22e-0ab0298e35f2",
+                "feedProvider": "Kris, Kunde and Ledner",
+                "name": "Incredible Wooden Chips",
+                "start": "2026-02-26T03:40:55.7571033+10:00",
+                "end": "2025-11-14T22:22:11.6816857+10:00",
+                "delay": 3634
+              },
+              {
+                "$type": "contestMessage",
+                "key": "b5cae452-743e-0de9-79f0-2e67a2b0e154",
+                "feedProvider": "Gibson and Sons",
+                "name": "Handcrafted Granite Computer",
+                "start": "2026-01-01T23:28:57.3661959+10:00",
+                "end": "2026-03-30T18:42:30.5689368+10:00",
+                "delay": 2557
+              },
+              {
+                "$type": "contestMessage",
+                "key": "051d1d31-f4bf-bde6-c70c-6f0876fd3a64",
+                "feedProvider": "Gerhold, Morar and Goodwin",
+                "name": "Generic Concrete Car",
+                "start": "2026-07-02T04:14:00.5665609+10:00",
+                "end": "2026-01-29T07:51:41.4605911+10:00",
+                "delay": 1710
+              },
+              {
+                "$type": "contestMessage",
+                "key": "c54f92b8-b8ea-bf0c-103b-693e402fec63",
+                "feedProvider": "Nienow, Halvorson and Stroman",
+                "name": "Intelligent Fresh Shoes",
+                "start": "2026-02-13T07:52:04.3923578+10:00",
+                "end": "2026-06-26T04:34:07.7650543+10:00",
+                "delay": 1981
+              }
+            ]
+          },
+          "isPaused": false,
+          "timestampText": "1 second ago at 11:15 PM",
+          "exceptionText": "No exceptions recorded"
+        },
+        {
+          "identifier": "0198adde-a752-73af-8407-034d760e8196",
+          "actorId": "PropositionActor",
+          "mailboxState": {
+            "pendingMessageCount": 3,
+            "messages": [
+              {
+                "$type": "propositionMessage",
+                "key": "2334a031-6fc3-603d-a59f-978b11bd9d7a",
+                "contestKey": "e5bebd19-d945-c880-5627-7566bce08caa",
+                "name": "Games, Tools & Movies",
+                "propositionAvailability": 0,
+                "isOpen": false,
+                "delay": 3977
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "6c50f40f-9da1-f2a0-464d-bf911d1a85e0",
+                "contestKey": "6cb67545-bbc1-8d9a-fb94-aad2ca803780",
+                "name": "Toys, Tools & Home",
+                "propositionAvailability": 1,
+                "isOpen": true,
+                "delay": 2258
+              },
+              {
+                "$type": "propositionMessage",
+                "key": "b611d7bb-7412-eca3-8ccb-bdd8e97ed946",
+                "contestKey": "40884db0-bbe8-a737-a165-b5da33c8edd4",
+                "name": "Tools & Shoes",
+                "propositionAvailability": 0,
+                "isOpen": false,
+                "delay": 2364
+              }
+            ]
+          },
+          "isPaused": false,
+          "timestampText": "0 second ago at 11:15 PM",
+          "exceptionText": "No exceptions recorded"
+        }
+      ],
+      "isBusy": true,
+      "timestampText": "0 second ago at 11:15 PM"
+    }
+  ]
+}

@@ -1,17 +1,20 @@
 ﻿using ActorFramework.Abstractions;
 using ActorFramework.Configs;
-using ActorFramework.Runtime.Orchestration;
+
+using ActorWorkspace.Abstractions;
+using ActorWorkspace.Runtime.Infrastructure;
+using ActorWorkspace.Runtime.Orchestration;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace ActorFramework.Extensions;
+namespace ActorWorkspace.Extensions;
 
 public static class DependencyExtensions
 {
     private const string ActorFrameworkSectionName = "ActorFrameworkOptions";
 
-    public static IServiceCollection AddActorFramework(this IServiceCollection services, IConfiguration configuration, Action<ActorRegistrationBuilder> configure)
+    public static IServiceCollection AddActorWorkspace(this IServiceCollection services, IConfiguration configuration, Action<ActorRegistrationBuilder> configure)
     {
         services.AddSingleton<IWorkspace, Workspace>();
         services.AddSingleton<WorkspaceLoadBalancer>();
@@ -39,7 +42,7 @@ public class ActorRegistrationBuilder
     public IReadOnlyList<Type> ActorTypes => _actorTypes;
 
     public ActorRegistrationBuilder AddActor<TActor, TMessage>()
-        where TActor : class, IActor
+        where TActor : class, IActor<TMessage>
         where TMessage : class, IMessage
     {
         _actorTypes.Add(typeof(TActor));

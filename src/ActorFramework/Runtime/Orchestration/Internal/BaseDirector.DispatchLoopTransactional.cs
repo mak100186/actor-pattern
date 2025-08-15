@@ -10,15 +10,18 @@ namespace ActorFramework.Runtime.Orchestration.Internal;
 /// Contains the dispatch loop logic for actors and retry policies.
 /// </summary>
 /// <typeparam name="TMessage"></typeparam>
-public abstract partial class BaseDirector<TMessage>
-    where TMessage : class, IMessage
+public abstract partial class BaseDirector
 {
-    protected async Task DispatchLoopTransactionalAsync(IActor<TMessage> actor, ActorContext<TMessage> context, IMailbox<TMessage> mailbox, ActorState actorState, CancellationToken cancellationToken)
+    protected async Task DispatchLoopTransactionalAsync(IActor actor, ActorContext context, IMailbox mailbox, ActorState actorState, CancellationToken cancellationToken)
     {
         try
         {
-            await foreach (var mailboxTransaction in mailbox.DequeueAsync(cancellationToken))
+            await foreach (Infrastructure.Internal.MailboxTransaction mailboxTransaction in mailbox.DequeueAsync(cancellationToken))
             {
+                Logger.LogInformation("Director {Identifier} running on Thread {ThreadId}", Identifier, Thread.CurrentThread.ManagedThreadId);
+
+                context.Director.RegisterLastActiveTimestamp();
+
                 // Block here if actor is paused
                 actorState.PauseGate.Wait(cancellationToken);
 
@@ -45,7 +48,7 @@ public abstract partial class BaseDirector<TMessage>
                 catch (Exception ex)
                 {
                     await actor.OnError(context.ActorId, mailboxTransaction.Message, ex).ConfigureAwait(false);
-                    
+
                     if (Options.ShouldStopOnUnhandledException)
                     {
                         Logger.LogError(ex, ActorFrameworkConstants.ActorFaultedAfterMaxRetriesPausing, context.ActorId);

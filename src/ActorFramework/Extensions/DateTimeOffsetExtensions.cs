@@ -7,9 +7,14 @@ public static class DateTimeOffsetExtensions
     /// </summary>
     public static string ToRelativeTimeWithLocal(this DateTimeOffset past, DateTimeOffset? relativeTo = null)
     {
+        if (past == DateTimeOffset.MinValue)
+        {
+            return "Never";
+        }
+
         // Compute span from now (in UTC) to the past timestamp
-        var nowUtc = (relativeTo ?? DateTimeOffset.UtcNow).ToUniversalTime();
-        var span = nowUtc - past.ToUniversalTime();
+        DateTimeOffset nowUtc = (relativeTo ?? DateTimeOffset.UtcNow).ToUniversalTime();
+        TimeSpan span = nowUtc - past.ToUniversalTime();
 
         // Determine the relative-time part
         string relative;
@@ -19,29 +24,29 @@ public static class DateTimeOffsetExtensions
         }
         else if (span.TotalSeconds < 60)
         {
-            var sec = (int)span.TotalSeconds;
+            int sec = (int)span.TotalSeconds;
             relative = $"{sec} second{Plural(sec)} ago";
         }
         else if (span.TotalMinutes < 60)
         {
-            var min = (int)span.TotalMinutes;
+            int min = (int)span.TotalMinutes;
             relative = $"{min} minute{Plural(min)} ago";
         }
         else if (span.TotalHours < 24)
         {
-            var hr = (int)span.TotalHours;
+            int hr = (int)span.TotalHours;
             relative = $"{hr} hour{Plural(hr)} ago";
         }
         else
         {
-            var days = (int)span.TotalDays;
+            int days = (int)span.TotalDays;
             relative = $"{days} day{Plural(days)} ago";
         }
 
         // Convert the original timestamp to local time for display
-        var localTime = past.ToLocalTime();
+        DateTimeOffset localTime = past.ToLocalTime();
         // Format e.g. "3:15 PM" – adjust format string to taste
-        var localString = localTime.ToString("h:mm tt");
+        string localString = localTime.ToString("h:mm tt");
 
         return $"{relative} at {localString}";
     }

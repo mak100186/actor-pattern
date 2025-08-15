@@ -1,25 +1,32 @@
+using ActorFramework.AspNetCore.Extensions;
 using ActorFramework.Extensions;
 
 using ActorSystem.Controllers;
 
 using Serilog;
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((ctx, lc) => lc
     .ReadFrom.Configuration(ctx.Configuration));
 
-// Add services to the container.
+ActorRegistrationBuilder actorRegistrationBuilder = new();
 builder.Services.AddActorFramework(builder.Configuration, actorBuilder =>
 {
-    actorBuilder.AddMessage<TestMessage>();
+    actorBuilder.AddActor<ContestActor, ContestMessage>();
+    actorBuilder.AddActor<PropositionActor, PropositionMessage>();
+
+    actorRegistrationBuilder = actorBuilder;
 });
 
 //Add controllers and OpenAPI support
-builder.Services.AddControllers();
+builder.Services
+    .AddControllers()
+    .AddActorFrameworkJsonPolymorphism(actorRegistrationBuilder);
+
 builder.Services.AddOpenApi();
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {

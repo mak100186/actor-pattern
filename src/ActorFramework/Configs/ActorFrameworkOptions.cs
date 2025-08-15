@@ -8,6 +8,16 @@ namespace ActorFramework.Configs;
 public class ActorFrameworkOptions
 {
     /// <summary>
+    /// The time in seconds after which the idle director would be pruned to conserve resources.
+    /// </summary>
+    public int DirectorIdleThresholdForPruning { get; set; } = ActorFrameworkConstants.DefaultDirectorIdleThresholdForPruningInSec;
+
+    /// <summary>
+    /// Max number of threads or directors inside a workspace.
+    /// </summary>
+    public int MaxDegreeOfParallelism { get; set; } = ActorFrameworkConstants.DefaultMaxDegreeOfParallelism;
+
+    /// <summary>
     /// Maximum number of messages a mailbox can buffer.
     /// </summary>
     /// <remarks>The default value is defined by <see

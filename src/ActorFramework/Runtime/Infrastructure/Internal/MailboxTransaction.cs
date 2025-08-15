@@ -4,15 +4,14 @@ using ActorFramework.Abstractions;
 
 namespace ActorFramework.Runtime.Infrastructure.Internal;
 
-public sealed class MailboxTransaction<TMessage>
-    where TMessage : class, IMessage
+public sealed class MailboxTransaction
 {
-    private readonly ConcurrentQueue<TMessage>? _queue;
-    private readonly TMessage _message;
-    private readonly Action<TMessage> _onCommit;
-    private readonly Action<TMessage> _onRollback;
+    private readonly ConcurrentQueue<IMessage>? _queue;
+    private readonly IMessage _message;
+    private readonly Action<IMessage> _onCommit;
+    private readonly Action<IMessage> _onRollback;
 
-    internal MailboxTransaction(ConcurrentQueue<TMessage>? queue, TMessage message, Action<TMessage> onCommit, Action<TMessage> onRollback) 
+    internal MailboxTransaction(ConcurrentQueue<IMessage>? queue, IMessage message, Action<IMessage> onCommit, Action<IMessage> onRollback)
     {
         _queue = queue;
         _message = message;
@@ -20,17 +19,17 @@ public sealed class MailboxTransaction<TMessage>
         _onRollback = onRollback;
     }
 
-    public TMessage Message => _message;
+    public IMessage Message => _message;
 
     public Task<bool> CommitAsync()
     {
         //non-transactional mailboxes (like UnboundedMailbox) will not have a queue, so we can commit immediately
-        if (_queue == null || (_queue.TryDequeue(out var dequeued) && ReferenceEquals(dequeued, _message)))
+        if (_queue == null || (_queue.TryDequeue(out IMessage? dequeued) && ReferenceEquals(dequeued, _message)))
         {
             _onCommit(_message);
             return Task.FromResult(true);
         }
-        
+
         return Task.FromResult(false);
     }
 
