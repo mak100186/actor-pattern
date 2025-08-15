@@ -1,3 +1,5 @@
+using System.Net;
+
 using ActorFramework.Abstractions;
 using ActorFramework.Exceptions;
 using ActorFramework.Models;
@@ -18,6 +20,7 @@ public class ActorController(ILogger<ActorController> logger, Director<TestMessa
     private static bool shouldThrow = false;
 
     [HttpGet("SpawnActors")]
+    [ProducesResponseType(typeof(string), (int)HttpStatusCode.OK)]
     public IActionResult SpawnActors()
     {
         for (var i = 0; i < MaxActorCount; i++)
@@ -28,7 +31,7 @@ public class ActorController(ILogger<ActorController> logger, Director<TestMessa
             }
             catch (ActorIdAlreadyRegisteredException ex)
             {
-                logger.LogInformation(ex.Message);
+                logger.LogError(ex, "Spawning actor threw an exception");
             }
         }
 
@@ -36,6 +39,7 @@ public class ActorController(ILogger<ActorController> logger, Director<TestMessa
     }
 
     [HttpGet("ShouldThrowException")]
+    [ProducesResponseType(typeof(bool), (int)HttpStatusCode.OK)]
     public IActionResult ShouldThrowException()
     {
         shouldThrow = !shouldThrow;
@@ -44,10 +48,12 @@ public class ActorController(ILogger<ActorController> logger, Director<TestMessa
 
 
     [HttpGet("ResumeActor")]
+    [ProducesResponseType(typeof(string), (int)HttpStatusCode.OK)]
     public IActionResult ResumeActor(string actorId) =>
         Ok(director.ResumeActor(actorId));
 
     [HttpGet("SendMessages")]
+    [ProducesResponseType(typeof(string), (int)HttpStatusCode.OK)]
     public async Task<IActionResult> SendMessages()
     {
         List<string> errors = [];
@@ -79,6 +85,7 @@ public class ActorController(ILogger<ActorController> logger, Director<TestMessa
     }
 
     [HttpGet("WorkspaceState")]
+    [ProducesResponseType(typeof(IReadOnlyDictionary<string, RegistryState<IMessage>>), (int)HttpStatusCode.OK)]
     public IActionResult WorkspaceState()
     {
         var statuses = director.GetRegistryState();
@@ -86,11 +93,12 @@ public class ActorController(ILogger<ActorController> logger, Director<TestMessa
     }
 
     [HttpGet("ReleaseActors")]
+    [ProducesResponseType(typeof(int), (int)HttpStatusCode.OK)]
     public IActionResult ReleaseActors()
     {
-        var statuses = director.ReleaseActors(ShouldReleaseActors);
+        var releasedActorCount = director.ReleaseActors(ShouldReleaseActors);
 
-        return Ok(statuses);
+        return Ok(releasedActorCount);
     }
 
     private static bool ShouldReleaseActors(ActorContext<TestMessage> actorContext)

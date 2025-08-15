@@ -5,6 +5,7 @@ using ActorFramework.Abstractions;
 using ActorFramework.Configs;
 using ActorFramework.Constants;
 using ActorFramework.Exceptions;
+using ActorFramework.Models;
 using ActorFramework.Runtime.Infrastructure.Internal;
 
 using Microsoft.Extensions.Logging;
@@ -17,7 +18,7 @@ public sealed class ConcurrentQueueMailbox<TMessage>(ActorFrameworkOptions actor
     private readonly ConcurrentQueue<TMessage> _queue = new();
     private readonly SemaphoreSlim _signal = new(0);
 
-    private const int SpinWaitOnBlockedProducerDelayMs = 10; 
+    private const int SpinWaitOnBlockedProducerDelayMs = 10;
 
     /// Maximum number of messages the mailbox can hold.
     private int Capacity { get; } = actorFrameworkOptions?.MailboxCapacity
@@ -26,6 +27,13 @@ public sealed class ConcurrentQueueMailbox<TMessage>(ActorFrameworkOptions actor
     /// Defines how the mailbox handles overflow when full.
     private OverflowPolicy OverflowPolicy { get; } = actorFrameworkOptions?.MailboxOverflowPolicy
                                                      ?? ActorFrameworkConstants.DefaultOverflowPolicy;
+
+    /// <inheritdoc />
+    public override MailboxState<TMessage> GetState()
+    {
+        var mailboxItems = _queue.ToArray();
+        return new(mailboxItems.Length, mailboxItems);
+    }
 
     public override async ValueTask EnqueueAsync(TMessage message, CancellationToken cancellationToken)
     {
@@ -36,7 +44,7 @@ public sealed class ConcurrentQueueMailbox<TMessage>(ActorFrameworkOptions actor
             {
                 case OverflowPolicy.BlockProducer:
                     Logger.LogInformation(ActorFrameworkConstants.EnqueueOpBlockedAsMailboxAtCapacity);
-                    
+
                     // spin-wait until there's room
                     while (Interlocked.Read(ref Pending) >= Capacity)
                     {
@@ -70,7 +78,7 @@ public sealed class ConcurrentQueueMailbox<TMessage>(ActorFrameworkOptions actor
         Interlocked.Increment(ref Pending);
         _signal.Release();
     }
-    
+
     public override async IAsyncEnumerable<MailboxTransaction<TMessage>> DequeueAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)

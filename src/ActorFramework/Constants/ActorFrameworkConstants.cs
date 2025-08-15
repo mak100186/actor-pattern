@@ -20,7 +20,7 @@ public static class ActorFrameworkConstants
     /// <summary>
     /// By default, the type of mailbox used for actors.
     /// </summary>
-    public const MailboxType DefaultMailboxType = MailboxType.Bounded;
+    public const MailboxType DefaultMailboxType = MailboxType.ConcurrentQueue;
 
     /// <summary>
     /// The default number of retries if an exception occurs while processing a message.

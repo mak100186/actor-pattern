@@ -21,10 +21,10 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
     /// <summary>
     /// Returns the number of pending messages in each actor’s mailbox.
     /// </summary>
-    public IReadOnlyDictionary<string, RegistryState> GetRegistryState() => Registry
+    public IReadOnlyDictionary<string, RegistryState<TMessage>> GetRegistryState() => Registry
         .ToDictionary(
             kvp => kvp.Key,
-            kvp => new RegistryState(kvp.Value.IsPaused, kvp.Value.Mailbox.Count, kvp.Value.LastMessageReceivedTimestamp.ToRelativeTimeWithLocal(), kvp.Value.LastException.GetExceptionText(kvp.Value.PausedAt)));
+            kvp => new RegistryState<TMessage>(kvp.Value.IsPaused, kvp.Value.Mailbox.GetState(), kvp.Value.LastMessageReceivedTimestamp.ToRelativeTimeWithLocal(), kvp.Value.LastException.GetExceptionText(kvp.Value.PausedAt)));
 
     /// <summary>
     /// Registers an actor under a unique identifier, spins up its mailbox and dispatch loop.
@@ -44,8 +44,6 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
 
         IMailbox<TMessage> mailbox = Options.MailboxType switch
         {
-            MailboxType.Unbounded => new UnboundedMailbox<TMessage>(logger),
-            MailboxType.Bounded => new BoundedMailbox<TMessage>(Options, logger),
             MailboxType.ConcurrentQueue => new ConcurrentQueueMailbox<TMessage>(Options, Logger),
 
             _ => throw new MailboxTypeNotHandledException(Options.MailboxType, nameof(Director<TMessage>))
@@ -153,6 +151,6 @@ public sealed class Director<TMessage>(IOptions<ActorFrameworkOptions> options, 
         actorState.PauseGate.Wait(actorState.CancellationSource.Token);
 
         // backpressure will apply if mailbox is full
-        return actorState.Mailbox.EnqueueAsync(message);
+        return actorState.Mailbox.EnqueueAsync(message, actorState.CancellationSource.Token);
     }
 }

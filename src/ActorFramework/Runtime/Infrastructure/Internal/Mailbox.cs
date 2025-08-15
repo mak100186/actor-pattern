@@ -1,4 +1,5 @@
 ﻿using ActorFramework.Abstractions;
+using ActorFramework.Models;
 
 using Microsoft.Extensions.Logging;
 
@@ -43,4 +44,6 @@ public abstract class Mailbox<TMessage>(ILogger logger) : IMailbox<TMessage>
             Stop();
         }
     }
+
+    public abstract MailboxState<TMessage> GetState();
 }

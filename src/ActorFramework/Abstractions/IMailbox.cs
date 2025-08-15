@@ -1,4 +1,5 @@
-﻿using ActorFramework.Runtime.Infrastructure.Internal;
+﻿using ActorFramework.Models;
+using ActorFramework.Runtime.Infrastructure.Internal;
 
 namespace ActorFramework.Abstractions;
 
@@ -23,16 +24,18 @@ public interface IMailbox<TMessage> : IDisposable where TMessage : class, IMessa
     /// </summary>
     /// <param name="message">The message instance.</param>
     /// <param name="cancellationToken">Cancel waiting if queue is full.</param>
-    ValueTask EnqueueAsync(TMessage message, CancellationToken cancellationToken = default);
+    ValueTask EnqueueAsync(TMessage message, CancellationToken cancellationToken);
 
     /// <summary>
     /// Returns an async stream of messages for the actor to process. Dequeue the next message, waiting if none are available.
     /// </summary>
     /// <param name="cancellationToken">Cancel waiting on shutdown or timeouts.</param>
-    IAsyncEnumerable<MailboxTransaction<TMessage>> DequeueAsync(CancellationToken cancellationToken = default);
+    IAsyncEnumerable<MailboxTransaction<TMessage>> DequeueAsync(CancellationToken cancellationToken);
 
     /// <summary>
     /// Number of messages currently buffered and waiting to be processed.
     /// </summary>
     int Count { get; }
+
+    MailboxState<TMessage> GetState();
 }
