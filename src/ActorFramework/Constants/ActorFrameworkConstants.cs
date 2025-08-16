@@ -45,10 +45,9 @@ public static class ActorFrameworkConstants
     // Logging templates used across the Actor Framework
     public const string ActorRetryingOnMessage = "Actor '{ActorId}' retry {Attempt}/{RetryCount} on message";
     public const string CommitFailedAsMessageWasNotAtHeadOfQueue = "Commit failed: message was not at head of queue.";
-    public const string ActorFaultedAfterMaxRetriesPausing = "Actor '{ActorId}' faulted on message after max retries; pausing";
+    public const string ActorFaultedAfterMaxRetriesPausing = "Actor '{ActorId}' faulted on message after max retries; rolling back; pausing";
     public const string ActorSkippingFailedMessage = "Actor '{ActorId}' skipping failed message and continuing";
-    public const string ActorRollbackFailedMessage = "Rolling back transaction for actor {ActorId} due to unhandled exception.";
-    public const string ThreadRunningDirector = "Thread [{ThreadId}] - Director[{Identifier}] - Actor[{Identifier}]";
+    public const string ThreadRunningDirector = "Thread [{ThreadId}] - Director[{DirectorIdentifier}] - Actor[{ActorIdentifier}]";
     public const string ResumingActor = "Resuming actor '{ActorId}'";
     public const string RemovingDirector = "Removing director '{DirectorId}'";
     public const string ShuttingDownDirectorCancellingActors = "Shutting down Director, cancelling actors...";

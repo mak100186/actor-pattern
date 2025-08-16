@@ -45,13 +45,13 @@ public abstract partial class BaseDirector
 
         public ActorState(IEventBus eventBus, IMailbox mailbox, IActor actor, ActorContext context, CancellationTokenSource cancellationSource, AsyncRetryPolicy retryPolicy, Func<ActorState, CancellationToken, Task> dispatchLoop)
         {
-            this.EventBus = eventBus;
-            this.Mailbox = mailbox;
-            this.Actor = actor;
-            this.Context = context;
-            this.CancellationSource = cancellationSource;
-            this.RetryPolicy = retryPolicy;
-            this.DispatchTask = Task.Run(() => dispatchLoop(this, CancellationSource.Token));
+            EventBus = eventBus;
+            Mailbox = mailbox;
+            Actor = actor;
+            Context = context;
+            CancellationSource = cancellationSource;
+            RetryPolicy = retryPolicy;
+            DispatchTask = Task.Run(() => dispatchLoop(this, CancellationSource.Token));
 
             eventBus.Publish(new ActorRegisteredEvent(context.ActorId, context.Director.Identifier));
         }
@@ -93,12 +93,8 @@ public abstract partial class BaseDirector
 
             IsPaused = true;
             PauseGate.Reset(); //closes the gate until manually resumed by Set()
-
-            if (ex != null)
-            {
-                LastException = ex;
-                PausedAt = DateTimeOffset.UtcNow;
-            }
+            LastException = ex;
+            PausedAt = DateTimeOffset.UtcNow;
         }
 
         #region Disposal
