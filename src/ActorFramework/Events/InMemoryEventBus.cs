@@ -1,4 +1,6 @@
-﻿namespace ActorFramework.Events;
+﻿using ActorFramework.Abstractions;
+
+namespace ActorFramework.Events;
 
 public interface IEventBus
 {

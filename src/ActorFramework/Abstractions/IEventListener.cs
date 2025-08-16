@@ -1,4 +1,4 @@
-﻿namespace ActorFramework.Events;
+﻿namespace ActorFramework.Abstractions;
 
 public interface IEventListener<in TEvent>
 {
