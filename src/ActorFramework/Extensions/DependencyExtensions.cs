@@ -33,8 +33,8 @@ public static class DependencyExtensions
 
 public class ActorRegistrationBuilder
 {
-    private List<Type> _actorTypes = [];
-    private Dictionary<Type, Type> _messageToActorMap = [];
+    private readonly List<Type> _actorTypes = [];
+    private readonly Dictionary<Type, Type> _messageToActorMap = [];
 
     public IReadOnlyDictionary<Type, Type> MessageToActorMap => _messageToActorMap;
 

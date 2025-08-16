@@ -13,7 +13,9 @@ public class WorkspaceLoadBalancer(ActorRegistrationBuilder actorRegistrationBui
         var messageType = message.GetType();
 
         if (!actorRegistrationBuilder.MessageToActorMap.TryGetValue(messageType, out var actorType))
+        {
             throw new InvalidOperationException($"No actor registered for message type {messageType.Name}");
+        }
 
         var actorId = actorType.Name; // or any unique string you use as ID
 
@@ -41,18 +43,12 @@ public class WorkspaceLoadBalancer(ActorRegistrationBuilder actorRegistrationBui
 
 public static class WorkspaceExtensions
 {
-    public static IDirector? GetFirstAvailableDirector(this IWorkspace workspace)
-    {
-        return workspace.Directors
-            .OrderBy(d => d.IsBusy()) // Prioritize not busy
-            .FirstOrDefault(d => !d.IsBusy());
-    }
+    public static IDirector? GetFirstAvailableDirector(this IWorkspace workspace) => workspace.Directors
+        .OrderBy(d => d.IsBusy()) // Prioritize not busy
+        .FirstOrDefault(d => !d.IsBusy());
 
-    public static IDirector GetLeastLoadedIdleDirector(this IWorkspace workspace)
-    {
-        return workspace.Directors
-            .OrderBy(d => d.TotalQueuedMessageCount) // least messages in mailbox
-            .ThenBy(d => d.LastActive) // then by last active time
-            .First();
-    }
+    public static IDirector GetLeastLoadedIdleDirector(this IWorkspace workspace) => workspace.Directors
+        .OrderBy(d => d.TotalQueuedMessageCount) // least messages in mailbox
+        .ThenBy(d => d.LastActive) // then by last active time
+        .First();
 }

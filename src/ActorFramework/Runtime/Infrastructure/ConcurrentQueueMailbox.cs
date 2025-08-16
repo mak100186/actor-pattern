@@ -57,7 +57,6 @@ public sealed partial class ConcurrentQueueMailbox(ActorFrameworkOptions actorFr
             _signal.Dispose();
         }
     }
-
 }
 public sealed partial class ConcurrentQueueMailbox
     : IMailbox
@@ -85,6 +84,7 @@ public sealed partial class ConcurrentQueueMailbox
                     {
                         await Task.Delay(SpinWaitOnBlockedProducerDelayMs, cancellationToken).ConfigureAwait(false);
                     }
+
                     break;
 
                 case OverflowPolicy.DropNewest:
@@ -97,6 +97,7 @@ public sealed partial class ConcurrentQueueMailbox
                         Logger.LogInformation(ActorFrameworkConstants.EnqueueOpDropOldest, dequeuedMessage);
                         Interlocked.Decrement(ref Pending);
                     }
+
                     break;
 
                 case OverflowPolicy.FailFast:

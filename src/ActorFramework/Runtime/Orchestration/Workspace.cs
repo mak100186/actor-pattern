@@ -13,7 +13,7 @@ using Microsoft.Extensions.Options;
 
 namespace ActorFramework.Runtime.Orchestration;
 
-public partial class Workspace : IdentifiableBase, IWorkspace
+public sealed partial class Workspace : IdentifiableBase, IWorkspace
 {
     private readonly ActorRegistrationBuilder _actorRegistrationBuilder;
     private readonly IOptions<ActorFrameworkOptions> _options;
@@ -33,14 +33,20 @@ public partial class Workspace : IdentifiableBase, IWorkspace
         _eventBus = eventBus;
         _actorRegistrationBuilder = actorRegistrationBuilder;
 
-        _eventBus.Register<ThreadInformationEvent>(this);
+        _eventBus.Register(this);
 
         CreateDirector(); // bootstrap 1 director
     }
 
     public IReadOnlyList<IDirector> Directors
     {
-        get { lock (_lock) return [.. _directors]; }
+        get
+        {
+            lock (_lock)
+            {
+                return [.. _directors];
+            }
+        }
     }
 
     public IDirector? CreateDirector()
@@ -87,44 +93,49 @@ public partial class Workspace : IdentifiableBase, IWorkspace
     public void Resume()
     {
         ThrowIfDisposed();
-
-        foreach (var director in _directors)
+        lock (_lock)
         {
-            director.ResumeActors();
+            foreach (var director in _directors)
+            {
+                director.ResumeActors();
+            }
         }
     }
 
     public WorkspaceStateExternal GetState()
     {
-        DirectorStateExternal[] directorStates = [.. _directors.Select(x => x.GetState())];
-        return new WorkspaceStateExternal(Identifier, directorStates.Length, directorStates);
+        lock (_lock)
+        {
+            DirectorStateExternal[] directorStates = [.. _directors.Select(x => x.GetState())];
+            return new(Identifier, directorStates.Length, directorStates);
+        }
     }
 }
 
-public partial class Workspace : IEventListener<ThreadInformationEvent>
+public sealed partial class Workspace : IEventListener<ThreadInformationEvent>
 {
-    public void OnEvent(ThreadInformationEvent evt)
-    {
-        _logger.LogInformation(ActorFrameworkConstants.ThreadRunningDirector, evt.ThreadId, evt.DirectorId, evt.ActorId);
-    }
+    public void OnEvent(ThreadInformationEvent evt) => _logger.LogInformation(ActorFrameworkConstants.ThreadRunningDirector, evt.ThreadId, evt.DirectorId, evt.ActorId);
 }
 
-public partial class Workspace : IDisposable, IAsyncDisposable
+public sealed partial class Workspace : IDisposable, IAsyncDisposable
 {
     private bool _disposed;
 
-    protected void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, GetType());
-    protected virtual void Dispose(bool disposing)
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, GetType());
+
+    private void Dispose(bool disposing)
     {
         if (_disposed)
         {
             return;
         }
+
         if (disposing)
         {
             // Synchronously wait for your async cleanup 
             DisposeInternal().GetAwaiter().GetResult();
         }
+
         _disposed = true;
     }
     public void Dispose()
@@ -139,6 +150,7 @@ public partial class Workspace : IDisposable, IAsyncDisposable
         {
             return;
         }
+
         await DisposeInternal().ConfigureAwait(false);
         _disposed = true;
         GC.SuppressFinalize(this);
@@ -150,7 +162,7 @@ public partial class Workspace : IDisposable, IAsyncDisposable
         {
             _logger.LogInformation(ActorFrameworkConstants.ShuttingDownWorkspaceDisposingDirectors);
 
-            _eventBus.Unregister<ThreadInformationEvent>(this);
+            _eventBus.Unregister(this);
             
             foreach (var director in _directors.ToArray())
             {

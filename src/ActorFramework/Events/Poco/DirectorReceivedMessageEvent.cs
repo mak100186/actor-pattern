@@ -1,13 +1,7 @@
 ﻿namespace ActorFramework.Events.Poco;
 
-public sealed class DirectorReceivedMessageEvent
+public sealed class DirectorReceivedMessageEvent(string directorId)
 {
-    public string DirectorId { get; }
-    public DateTimeOffset Timestamp { get; }
-
-    public DirectorReceivedMessageEvent(string directorId)
-    {
-        DirectorId = directorId;
-        Timestamp = DateTimeOffset.UtcNow;
-    }
+    public string DirectorId { get; } = directorId;
+    public DateTimeOffset Timestamp { get; } = DateTimeOffset.UtcNow;
 }

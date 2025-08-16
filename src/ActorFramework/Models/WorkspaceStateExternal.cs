@@ -1,6 +1,5 @@
 ﻿namespace ActorFramework.Models;
 
-
 /// <summary>
 /// Represents the state of the workspace. This is for external representation only.
 /// </summary>

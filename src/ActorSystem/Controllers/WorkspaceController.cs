@@ -23,16 +23,11 @@ public class WorkspaceController(
 
     [HttpGet("SendMessages")]
     [ProducesResponseType(typeof(string), (int)HttpStatusCode.OK)]
-    public async Task<IActionResult> SendMessages(int countOfMessagesToGenerate)
+    public async Task<IActionResult> SendMessagesAsync(int countOfMessagesToGenerate)
     {
-        IMessage message;
-
         for (var i = 0; i < countOfMessagesToGenerate; i++)
         {
-            if (i % 2 == 0)
-                message = contestFaker.Generate();
-            else
-                message = propositionFaker.Generate();
+            IMessage message = i % 2 == 0 ? contestFaker.Generate() : propositionFaker.Generate();
 
             await workspaceLoadBalancer.RouteAsync(message);
         }

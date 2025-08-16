@@ -11,40 +11,36 @@ public static class ActorFrameworkAspNetCoreExtensions
 {
     public static IMvcBuilder AddActorFrameworkJsonPolymorphism(
         this IMvcBuilder mvcBuilder,
-        ActorRegistrationBuilder builder)
+        ActorRegistrationBuilder builder) => mvcBuilder.AddJsonOptions(options =>
     {
-        return mvcBuilder.AddJsonOptions(options =>
-        {
-            options.JsonSerializerOptions.WriteIndented = true;
+        options.JsonSerializerOptions.WriteIndented = true;
 
-            options.JsonSerializerOptions.TypeInfoResolverChain.Insert(
-                0,
-                new DefaultJsonTypeInfoResolver
+        options.JsonSerializerOptions.TypeInfoResolverChain.Insert(
+            0,
+            new DefaultJsonTypeInfoResolver
+            {
+                Modifiers =
                 {
-                    Modifiers =
+                    typeInfo =>
                     {
-                        typeInfo =>
+                        if (typeInfo.Type == typeof(IMessage))
                         {
-                            if (typeInfo.Type == typeof(IMessage))
+                            JsonPolymorphismOptions polyOptions = new() {
+                                TypeDiscriminatorPropertyName = "$type",
+                                IgnoreUnrecognizedTypeDiscriminators = true
+                            };
+
+                            foreach (var messageType in builder.MessageToActorMap.Select(kvp => kvp.Key))
                             {
-                                JsonPolymorphismOptions polyOptions = new() {
-                                    TypeDiscriminatorPropertyName = "$type",
-                                    IgnoreUnrecognizedTypeDiscriminators = true
-                                };
-
-                                foreach (var kvp in builder.MessageToActorMap)
-                                {
-                                    var messageType = kvp.Key;
-                                    var discriminator = char.ToLowerInvariant(messageType.Name[0]) + messageType.Name[1..];
-                                    polyOptions.DerivedTypes.Add(new JsonDerivedType(messageType, discriminator));
-                                }
-
-                                typeInfo.PolymorphismOptions = polyOptions;
+                                var discriminator = char.ToLowerInvariant(messageType.Name[0]) + messageType.Name[1..];
+                                polyOptions.DerivedTypes.Add(new(messageType, discriminator));
                             }
+
+                            typeInfo.PolymorphismOptions = polyOptions;
                         }
                     }
                 }
-            );
-        });
-    }
+            }
+        );
+    });
 }

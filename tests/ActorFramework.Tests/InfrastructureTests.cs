@@ -102,7 +102,7 @@ public class InfrastructureTests
     /// - Verify that a WorkspaceCapacityReachedEvent was published
     /// </summary>
     [Fact]
-    public void EnsureWorkspaceDoesntCreateADirectorWhenCapacityHasReached()
+    public void EnsureWorkspaceDoesNotCreateADirectorWhenCapacityHasReached()
     {
         // Arrange
         var context = new WorkspaceTestContext()
@@ -201,7 +201,7 @@ public class InfrastructureTests
 
         context.CreateSubject();
 
-        var lastDirector = context.SubjectUnderTest.Directors.First();
+        var lastDirector = context.SubjectUnderTest.Directors[0];
         var directorIdToRemove = lastDirector.Identifier;
 
         // Act
@@ -236,9 +236,6 @@ public class InfrastructureTests
             {
                 options.MaxDegreeOfParallelism = 2;
             });
-
-        var capture = new EventCapture<DirectorDisposedEvent>()
-            .SetupCapture(context.MockEventBus);
 
         context.CreateSubject();
 
@@ -350,7 +347,7 @@ public class InfrastructureTests
         context.CreateSubject();
 
         // Store a reference to a director before disposal
-        var directorBeforeDispose = context.SubjectUnderTest.Directors.First();
+        var directorBeforeDispose = context.SubjectUnderTest.Directors[0];
 
         // Act
         context.SubjectUnderTest.Dispose();
@@ -358,10 +355,10 @@ public class InfrastructureTests
         // Assert
         Assert.Throws<ObjectDisposedException>(() => context.SubjectUnderTest.CreateDirector());
         Assert.Throws<ObjectDisposedException>(() => context.SubjectUnderTest.Resume());
-        
+
         // RemoveDirector should also throw
         Assert.Throws<ObjectDisposedException>(() => context.SubjectUnderTest.RemoveDirector(directorBeforeDispose));
-        
+
         // GetState() doesn't check for disposal, so it should not throw
         var state = context.SubjectUnderTest.GetState();
         Assert.NotNull(state);
@@ -385,9 +382,6 @@ public class InfrastructureTests
                 options.MaxDegreeOfParallelism = 3;
             });
 
-        var capture = new EventCapture<DirectorDisposedEvent>()
-            .SetupCapture(context.MockEventBus);
-
         context.CreateSubject();
 
         // Create additional directors
@@ -396,8 +390,6 @@ public class InfrastructureTests
 
         Assert.NotNull(director1);
         Assert.NotNull(director2);
-
-        var initialDirectorCount = context.SubjectUnderTest.Directors.Count;
 
         // Act
         context.SubjectUnderTest.Dispose();
@@ -426,9 +418,6 @@ public class InfrastructureTests
                 options.MaxDegreeOfParallelism = 3;
             });
 
-        var capture = new EventCapture<DirectorDisposedEvent>()
-            .SetupCapture(context.MockEventBus);
-
         context.CreateSubject();
 
         // Create additional directors
@@ -437,8 +426,6 @@ public class InfrastructureTests
 
         Assert.NotNull(director1);
         Assert.NotNull(director2);
-
-        var initialDirectorCount = context.SubjectUnderTest.Directors.Count;
 
         // Act
         await context.SubjectUnderTest.DisposeAsync();
@@ -467,9 +454,6 @@ public class InfrastructureTests
             {
                 options.MaxDegreeOfParallelism = 2;
             });
-
-        var capture = new EventCapture<DirectorRegisteredEvent>()
-            .SetupCapture(context.MockEventBus);
 
         context.CreateSubject();
 
@@ -536,12 +520,9 @@ public class InfrastructureTests
                 options.MaxDegreeOfParallelism = 2;
             });
 
-        var capture = new EventCapture<DirectorDisposedEvent>()
-            .SetupCapture(context.MockEventBus);
-
         context.CreateSubject();
 
-        var director = context.SubjectUnderTest.Directors.First();
+        var director = context.SubjectUnderTest.Directors[0];
 
         // Act
         context.SubjectUnderTest.RemoveDirector(director);

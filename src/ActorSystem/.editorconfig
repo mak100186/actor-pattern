@@ -27,7 +27,7 @@ dotnet_style_allow_statement_immediately_after_block_experimental = true:suggest
 
 # Async methods
 dotnet_naming_rule.async_methods_end_in_async.symbols  = any_async_methods
-dotnet_naming_rule.async_methods_end_in_async.style    = end_in_async
+dotnet_naming_rule.async_methods_end_in_async.style = end_in_async
 dotnet_naming_rule.async_methods_end_in_async.severity = warning
 
 dotnet_naming_symbols.any_async_methods.applicable_kinds           = method
@@ -36,6 +36,19 @@ dotnet_naming_symbols.any_async_methods.required_modifiers         = async
 
 dotnet_naming_style.end_in_async.required_suffix = Async
 dotnet_naming_style.end_in_async.capitalization  = pascal_case
+end_of_line = crlf
+dotnet_style_coalesce_expression = true:suggestion
+dotnet_style_null_propagation = true:suggestion
+dotnet_style_prefer_is_null_check_over_reference_equality_method = true:warning
+dotnet_style_prefer_auto_properties = true:suggestion
+dotnet_style_object_initializer = true:suggestion
+dotnet_style_collection_initializer = true:suggestion
+dotnet_style_prefer_simplified_boolean_expressions = true:warning
+dotnet_style_prefer_conditional_expression_over_assignment = true:warning
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
 
 [*.{json,config,nswag}]
 indent_size = 2
@@ -325,7 +338,7 @@ dotnet_diagnostic.IDE0041.severity = warning
 # Deconstruct variable declaration (IDE0042)
 # https://learn.microsoft.com/en-us/dotnet/fundamentals/code-analysis/style-rules/ide0042
 # Prefer deconstructed variable declaration
-csharp_style_deconstructed_variable_declaration = true:suggestion
+csharp_style_deconstructed_variable_declaration = true:warning
 dotnet_diagnostic.IDE0042.severity = suggestion
 
 # Add readonly modifier (IDE0044)
@@ -918,3 +931,4 @@ dotnet_diagnostic.CA2215.severity = warning
 dotnet_diagnostic.CA2218.severity = warning
 dotnet_diagnostic.CA2219.severity = warning
 dotnet_diagnostic.CA2224.severity = warning
+csharp_prefer_system_threading_lock = true:suggestion

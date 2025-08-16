@@ -1,17 +1,9 @@
 ﻿namespace ActorFramework.Events.Poco;
 
-public sealed class ThreadInformationEvent
+public sealed class ThreadInformationEvent(string directorId, string actorId, string threadId)
 {
-    public string ActorId { get; }
-    public string ThreadId { get; }
-    public string DirectorId { get; }
-    public DateTimeOffset Timestamp { get; }
-
-    public ThreadInformationEvent(string directorId, string actorId, string threadId)
-    {
-        ActorId = actorId;
-        ThreadId = threadId;
-        DirectorId = directorId;
-        Timestamp = DateTimeOffset.UtcNow;
-    }
+    public string ActorId { get; } = actorId;
+    public string ThreadId { get; } = threadId;
+    public string DirectorId { get; } = directorId;
+    public DateTimeOffset Timestamp { get; } = DateTimeOffset.UtcNow;
 }

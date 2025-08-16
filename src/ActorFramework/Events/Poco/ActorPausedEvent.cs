@@ -1,15 +1,8 @@
 ﻿namespace ActorFramework.Events.Poco;
 
-public sealed class ActorPausedEvent
+public sealed class ActorPausedEvent(string actorId, Exception? exception)
 {
-    public string ActorId { get; }
-    public Exception? Exception { get; }
-    public DateTimeOffset Timestamp { get; }
-
-    public ActorPausedEvent(string actorId, Exception? exception)
-    {
-        ActorId = actorId;
-        Exception = exception;
-        Timestamp = DateTimeOffset.UtcNow;
-    }
+    public string ActorId { get; } = actorId;
+    public Exception? Exception { get; } = exception;
+    public DateTimeOffset Timestamp { get; } = DateTimeOffset.UtcNow;
 }

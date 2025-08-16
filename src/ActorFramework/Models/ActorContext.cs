@@ -23,8 +23,5 @@ public sealed class ActorContext
         Director = director;
     }
 
-    public ActorContextExternal ToExternal(int pendingMessageCount, DateTimeOffset lastReceivedMessageTimestamp)
-    {
-        return new ActorContextExternal(Director.Identifier, ActorId, pendingMessageCount, lastReceivedMessageTimestamp);
-    }
+    public ActorContextExternal ToExternal(int pendingMessageCount, DateTimeOffset lastReceivedMessageTimestamp) => new(Director.Identifier, ActorId, pendingMessageCount, lastReceivedMessageTimestamp);
 }

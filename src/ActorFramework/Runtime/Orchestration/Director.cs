@@ -26,30 +26,28 @@ public sealed class Director : BaseDirector,
 
     public int TotalQueuedMessageCount => Registry.Sum(kvp => kvp.Value.Mailbox.Count);
 
-    public Director(IOptions<ActorFrameworkOptions> options, ILogger<Director> logger, IEventBus eventBus) : base(options, logger, eventBus)
-    {
-        eventBus.Register<ActorReceivedMessageEvent>(this);
-    }
+    public Director(IOptions<ActorFrameworkOptions> options, ILogger<Director> logger, IEventBus eventBus) : base(options, logger, eventBus) => eventBus.Register(this);
 
-    public void OnEvent(ActorReceivedMessageEvent evt)
-    {
-        LastActive = DateTimeOffset.UtcNow;
-    }
+    public void OnEvent(ActorReceivedMessageEvent evt) => LastActive = DateTimeOffset.UtcNow;
 
     protected override void Cleanup()
     {
         base.Cleanup();
 
-        EventBus.Unregister<ActorReceivedMessageEvent>(this);
+        EventBus.Unregister(this);
     }
 
     public bool IsBusy()
     {
         if (Registry.Values.Any(x => x.IsPaused))
+        {
             return true;
+        }
 
         if (Registry.Values.Any(x => x.Mailbox.Count > 0))
+        {
             return true;
+        }
 
         return false;
     }
@@ -68,8 +66,7 @@ public sealed class Director : BaseDirector,
                     kvp.Value.LastMessageReceivedTimestamp.ToRelativeTimeWithLocal(),
                     kvp.Value.LastException.GetExceptionText(kvp.Value.PausedAt)))];
 
-        return new DirectorStateExternal
-        (
+        return new(
             Identifier,
             actorStates.Length,
             TotalQueuedMessageCount,

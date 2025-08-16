@@ -1,4 +1,3 @@
-using ActorFramework.Abstractions;
 using ActorFramework.Configs;
 using ActorFramework.Events;
 using ActorFramework.Extensions;
@@ -33,20 +32,14 @@ public class WorkspaceTestContext
         return this;
     }
 
-    public void CreateSubject()
-    {
-        SubjectUnderTest = new(
-            actorRegistrationBuilder: new ActorRegistrationBuilder().AddActor<MockActor, MockMessage>(),
-            options: MockOptions.Object,
-            logger: MockLogger.Object,
-            loggerFactory: MockLoggerFactory.Object,
-            serviceProvider: MockServiceProvider.Object,
-            eventBus: MockEventBus.Object
-        );
-    }
+    public void CreateSubject() => SubjectUnderTest = new(
+        actorRegistrationBuilder: new ActorRegistrationBuilder().AddActor<MockActor, MockMessage>(),
+        options: MockOptions.Object,
+        logger: MockLogger.Object,
+        loggerFactory: MockLoggerFactory.Object,
+        serviceProvider: MockServiceProvider.Object,
+        eventBus: MockEventBus.Object
+    );
 
-    public void VerifyEventPublished<TEvent>(Times times) where TEvent : class
-    {
-        MockEventBus.Verify(m => m.Publish(It.IsAny<TEvent>()), times);
-    }
+    public void VerifyEventPublished<TEvent>(Times times) where TEvent : class => MockEventBus.Verify(m => m.Publish(It.IsAny<TEvent>()), times);
 }

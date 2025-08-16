@@ -11,17 +11,23 @@ public interface IEventBus
 
 public class InMemoryEventBus : IEventBus
 {
-    private readonly List<object> _listeners = new();
-    private readonly object _gate = new();
+    private readonly List<object> _listeners = [];
+    private readonly Lock _gate = new();
 
     public void Register<TEvent>(IEventListener<TEvent> listener)
     {
-        lock (_gate) _listeners.Add(listener);
+        lock (_gate)
+        {
+            _listeners.Add(listener);
+        }
     }
 
     public void Unregister<TEvent>(IEventListener<TEvent> listener)
     {
-        lock (_gate) _listeners.Remove(listener);
+        lock (_gate)
+        {
+            _listeners.Remove(listener);
+        }
     }
 
     public void Publish<TEvent>(TEvent evt)
@@ -29,12 +35,15 @@ public class InMemoryEventBus : IEventBus
         List<IEventListener<TEvent>> snapshot;
         lock (_gate)
         {
-            snapshot = _listeners.OfType<IEventListener<TEvent>>().ToList();
+            snapshot = [.. _listeners.OfType<IEventListener<TEvent>>()];
         }
 
         foreach (var listener in snapshot)
         {
-            try { listener.OnEvent(evt); }
+            try
+            {
+                listener.OnEvent(evt);
+            }
             catch { /* swallow to isolate publisher */ }
         }
     }

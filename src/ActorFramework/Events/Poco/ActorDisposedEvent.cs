@@ -1,13 +1,7 @@
 ﻿namespace ActorFramework.Events.Poco;
 
-public sealed class ActorDisposedEvent
+public sealed class ActorDisposedEvent(string actorId)
 {
-    public string ActorId { get; }
-    public DateTimeOffset Timestamp { get; }
-
-    public ActorDisposedEvent(string actorId)
-    {
-        ActorId = actorId;
-        Timestamp = DateTimeOffset.UtcNow;
-    }
+    public string ActorId { get; } = actorId;
+    public DateTimeOffset Timestamp { get; } = DateTimeOffset.UtcNow;
 }

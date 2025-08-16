@@ -27,8 +27,8 @@ builder.Services
     .AddControllers()
     .AddActorFrameworkJsonPolymorphism(actorRegistrationBuilder);
 
-builder.Services.AddSingleton<Faker<ContestMessage>>(new Faker<ContestMessage>()
-        .CustomInstantiator(f => new ContestMessage(
+builder.Services.AddSingleton(new Faker<ContestMessage>()
+        .CustomInstantiator(f => new(
             Key: f.Random.Guid().ToString(),
             FeedProvider: f.Company.CompanyName(),
             Name: f.Commerce.ProductName(),
@@ -37,8 +37,8 @@ builder.Services.AddSingleton<Faker<ContestMessage>>(new Faker<ContestMessage>()
             Delay: f.Random.Int(100, 5000)
         )));
 
-builder.Services.AddSingleton<Faker<PropositionMessage>>(new Faker<PropositionMessage>()
-    .CustomInstantiator(f => new PropositionMessage(
+builder.Services.AddSingleton(new Faker<PropositionMessage>()
+    .CustomInstantiator(f => new(
         Key: f.Random.Guid().ToString(),
         ContestKey: f.Random.Guid().ToString(),
         Name: f.Commerce.Department(),

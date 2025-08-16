@@ -1,11 +1,10 @@
 ﻿using System.Text;
 
-internal class Program
+namespace ActorFramework.Tools;
+
+internal static class Program
 {
-    static void Main(string[] args)
-    {
-        FlattenEntireCodebase();
-    }
+    static void Main(string[] args) => FlattenEntireCodebase();
 
     private static void FlattenEntireCodebase()
     {
@@ -16,7 +15,7 @@ internal class Program
         var outputFile = @".\..\..\..\..\..\tools\output.txt";
 
         // File extensions to include
-        string[] extensions = { ".cs" };
+        string[] extensions = [".cs"];
 
         var sb = new StringBuilder();
 

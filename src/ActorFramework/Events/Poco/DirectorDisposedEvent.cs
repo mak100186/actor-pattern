@@ -1,15 +1,8 @@
 ﻿namespace ActorFramework.Events.Poco;
 
-public sealed class DirectorDisposedEvent
+public sealed class DirectorDisposedEvent(string directorId, string workspaceId)
 {
-    public string WorkspaceId { get; }
-    public string DirectorId { get; }
-    public DateTimeOffset Timestamp { get; }
-
-    public DirectorDisposedEvent(string directorId, string workspaceId)
-    {
-        WorkspaceId = workspaceId;
-        DirectorId = directorId;
-        Timestamp = DateTimeOffset.UtcNow;
-    }
+    public string WorkspaceId { get; } = workspaceId;
+    public string DirectorId { get; } = directorId;
+    public DateTimeOffset Timestamp { get; } = DateTimeOffset.UtcNow;
 }
