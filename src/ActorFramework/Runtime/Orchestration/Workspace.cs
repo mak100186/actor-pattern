@@ -59,7 +59,7 @@ public partial class Workspace : IdentifiableBase, IWorkspace
 
             _eventBus.Publish(new DirectorRegisteredEvent(director.Identifier, Identifier));
 
-            foreach (Type actorType in _actorRegistrationBuilder.ActorTypes)
+            foreach (var actorType in _actorRegistrationBuilder.ActorTypes)
             {
                 director.RegisterActor(actorType.Name, () => (IActor)ActivatorUtilities.CreateInstance(_serviceProvider, actorType));
             }
@@ -88,7 +88,7 @@ public partial class Workspace : IdentifiableBase, IWorkspace
     {
         ThrowIfDisposed();
 
-        foreach (IDirector director in _directors)
+        foreach (var director in _directors)
         {
             director.ResumeActors();
         }
@@ -152,7 +152,7 @@ public partial class Workspace : IDisposable, IAsyncDisposable
 
             _eventBus.Unregister<ThreadInformationEvent>(this);
             
-            foreach (IDirector director in _directors.ToArray())
+            foreach (var director in _directors.ToArray())
             {
                 RemoveDirector(director);
             }

@@ -18,7 +18,7 @@ public class ContestActor(ILogger<ContestActor> logger) : IActor
     {
         if (message is ContestMessage contestMessage)
         {
-            int delayMs = contestMessage.Delay;
+            var delayMs = contestMessage.Delay;
 
             logger.LogInformation("Received ContestMessage: {Key} {FeedProvider} {Name} {Start} {End} {Delay} ms",
                 contestMessage.Key,

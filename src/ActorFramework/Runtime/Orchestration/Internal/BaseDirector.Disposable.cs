@@ -29,7 +29,7 @@ public abstract partial class BaseDirector : IDisposable, IAsyncDisposable
 
             Logger.LogInformation(ActorFrameworkConstants.DispatchLoopsCompletedDisposingMailboxes);
 
-            foreach (ActorState actorState in Registry.Values)
+            foreach (var actorState in Registry.Values)
             {
                 await actorState.DisposeAsync();
             }

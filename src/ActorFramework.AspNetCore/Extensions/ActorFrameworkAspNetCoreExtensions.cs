@@ -32,10 +32,10 @@ public static class ActorFrameworkAspNetCoreExtensions
                                     IgnoreUnrecognizedTypeDiscriminators = true
                                 };
 
-                                foreach (KeyValuePair<Type, Type> kvp in builder.MessageToActorMap)
+                                foreach (var kvp in builder.MessageToActorMap)
                                 {
-                                    Type messageType = kvp.Key;
-                                    string discriminator = char.ToLowerInvariant(messageType.Name[0]) + messageType.Name[1..];
+                                    var messageType = kvp.Key;
+                                    var discriminator = char.ToLowerInvariant(messageType.Name[0]) + messageType.Name[1..];
                                     polyOptions.DerivedTypes.Add(new JsonDerivedType(messageType, discriminator));
                                 }
 

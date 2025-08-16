@@ -92,7 +92,7 @@ public sealed partial class ConcurrentQueueMailbox
                     return;
 
                 case OverflowPolicy.DropOldest:
-                    if (_queue.TryDequeue(out IMessage? dequeuedMessage))
+                    if (_queue.TryDequeue(out var dequeuedMessage))
                     {
                         Logger.LogInformation(ActorFrameworkConstants.EnqueueOpDropOldest, dequeuedMessage);
                         Interlocked.Decrement(ref Pending);
@@ -120,7 +120,7 @@ public sealed partial class ConcurrentQueueMailbox
         {
             await _signal.WaitAsync(cancellationToken).ConfigureAwait(false);
 
-            if (_queue.TryPeek(out IMessage? message))
+            if (_queue.TryPeek(out var message))
             {
                 yield return new(_queue, message, OnCommitInternal, OnRollbackInternal);
             }

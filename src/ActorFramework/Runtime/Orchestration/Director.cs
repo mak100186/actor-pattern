@@ -102,7 +102,7 @@ public sealed class Director : BaseDirector,
             _ => throw new MailboxTypeNotHandledException(Options.MailboxType, nameof(Director))
         };
 
-        IActor actor = actorFactory();
+        var actor = actorFactory();
         ActorContext context = new(actorId, this);
         CancellationTokenSource cts = new();
 
@@ -117,7 +117,7 @@ public sealed class Director : BaseDirector,
     /// <returns></returns>
     public void ResumeActors()
     {
-        foreach (string actorId in Registry.Keys)
+        foreach (var actorId in Registry.Keys)
         {
             ResumeActor(actorId);
         }
@@ -127,7 +127,7 @@ public sealed class Director : BaseDirector,
     {
         ThrowIfDisposed();
 
-        if (!Registry.TryGetValue(actorId, out ActorState? actorState))
+        if (!Registry.TryGetValue(actorId, out var actorState))
         {
             return string.Format(ActorNotFoundFormat, actorId);
         }
@@ -153,7 +153,7 @@ public sealed class Director : BaseDirector,
     {
         ThrowIfDisposed();
 
-        if (!Registry.TryGetValue(actorId, out ActorState? actorState))
+        if (!Registry.TryGetValue(actorId, out var actorState))
         {
             throw new ActorIdNotFoundException(actorId);
         }

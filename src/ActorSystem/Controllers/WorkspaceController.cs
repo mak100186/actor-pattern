@@ -27,7 +27,7 @@ public class WorkspaceController(
     {
         IMessage message;
 
-        for (int i = 0; i < countOfMessagesToGenerate; i++)
+        for (var i = 0; i < countOfMessagesToGenerate; i++)
         {
             if (i % 2 == 0)
                 message = contestFaker.Generate();
@@ -51,7 +51,7 @@ public class WorkspaceController(
     [ProducesResponseType(typeof(IReadOnlyList<IReadOnlyDictionary<string, ActorStateExternal>>), (int)HttpStatusCode.OK)]
     public IActionResult WorkspaceState()
     {
-        WorkspaceStateExternal statuses = workspace.GetState();
+        var statuses = workspace.GetState();
         return Ok(statuses);
     }
 }

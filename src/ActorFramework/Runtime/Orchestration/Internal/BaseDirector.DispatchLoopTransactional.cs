@@ -1,6 +1,5 @@
 ﻿using ActorFramework.Constants;
 using ActorFramework.Events.Poco;
-using ActorFramework.Runtime.Infrastructure.Internal;
 
 using Microsoft.Extensions.Logging;
 
@@ -16,7 +15,7 @@ public abstract partial class BaseDirector
     {
         try
         {
-            await foreach (MailboxTransaction mailboxTransaction in actorState.Mailbox.DequeueAsync(cancellationToken))
+            await foreach (var mailboxTransaction in actorState.Mailbox.DequeueAsync(cancellationToken))
             {
                 // Block here if actor is paused
                 actorState.PauseGate.Wait(cancellationToken);

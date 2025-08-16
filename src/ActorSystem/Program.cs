@@ -8,7 +8,7 @@ using Bogus;
 
 using Serilog;
 
-WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 builder.Host.UseSerilog((ctx, lc) => lc
     .ReadFrom.Configuration(ctx.Configuration));
@@ -49,7 +49,7 @@ builder.Services.AddSingleton<Faker<PropositionMessage>>(new Faker<PropositionMe
 
 builder.Services.AddOpenApi();
 
-WebApplication app = builder.Build();
+var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {

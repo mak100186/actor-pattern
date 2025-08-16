@@ -24,7 +24,7 @@ public sealed class MailboxTransaction
     public Task<bool> CommitAsync()
     {
         //non-transactional mailboxes (like UnboundedMailbox) will not have a queue, so we can commit immediately
-        if (_queue == null || (_queue.TryDequeue(out IMessage? dequeued) && ReferenceEquals(dequeued, _message)))
+        if (_queue == null || (_queue.TryDequeue(out var dequeued) && ReferenceEquals(dequeued, _message)))
         {
             _onCommit(_message);
             return Task.FromResult(true);

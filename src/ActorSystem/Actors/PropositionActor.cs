@@ -18,7 +18,7 @@ public class PropositionActor(ILogger<PropositionActor> logger) : IActor
     {
         if (message is PropositionMessage propositionMessage)
         {
-            int delayMs = propositionMessage.Delay;
+            var delayMs = propositionMessage.Delay;
 
             logger.LogInformation("Received PropositionMessage: {Key} {ContestKey} {Name} {Availability} {IsOpen} {Delay} ms",
                 propositionMessage.Key,
