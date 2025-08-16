@@ -12,10 +12,9 @@ using Microsoft.Extensions.Logging;
 
 namespace ActorFramework.Runtime.Infrastructure;
 
-public sealed class ConcurrentQueueMailbox(ActorFrameworkOptions actorFrameworkOptions, ILogger logger) : Mailbox(logger)
+public sealed partial class ConcurrentQueueMailbox(ActorFrameworkOptions actorFrameworkOptions, ILogger logger)
 {
     private readonly ConcurrentQueue<IMessage> _queue = new();
-    private readonly SemaphoreSlim _signal = new(0);
 
     private const int SpinWaitOnBlockedProducerDelayMs = 10;
 
@@ -27,14 +26,51 @@ public sealed class ConcurrentQueueMailbox(ActorFrameworkOptions actorFrameworkO
     private OverflowPolicy OverflowPolicy { get; } = actorFrameworkOptions?.MailboxOverflowPolicy
                                                      ?? ActorFrameworkConstants.DefaultOverflowPolicy;
 
+    private readonly ILogger Logger = logger;
+
+    private long Pending;
+
+    private readonly SemaphoreSlim _signal = new(0);
+
+    // Commit the transaction by removing the message from the queue
+    private void OnCommitInternal(IMessage message) =>
+        Interlocked.Decrement(ref Pending);
+
+    // Release the signal to unblock any waiting Dequeue calls
+    private void OnRollbackInternal(IMessage message) =>
+        _signal.Release();
+
+    // unblock any waiting Dequeue calls
+    private void Stop() => _signal.Release(int.MaxValue);
+
+    public void Dispose()
+    {
+        Dispose(true);
+        GC.SuppressFinalize(this);
+    }
+
+    private void Dispose(bool disposing)
+    {
+        if (disposing)
+        {
+            Stop();
+            _signal.Dispose();
+        }
+    }
+
+}
+public sealed partial class ConcurrentQueueMailbox
+    : IMailbox
+{
+    public int Count => (int)Interlocked.Read(ref Pending);
     /// <inheritdoc />
-    public override MailboxStateExternal GetState()
+    public MailboxStateExternal GetState()
     {
         IMessage[] mailboxItems = [.. _queue];
         return new(mailboxItems.Length, mailboxItems);
     }
 
-    public override async ValueTask EnqueueAsync(IMessage message, CancellationToken cancellationToken)
+    public async ValueTask EnqueueAsync(IMessage message, CancellationToken cancellationToken)
     {
         // Backpressure / overflow logic
         if (Capacity > 0 && Interlocked.Read(ref Pending) >= Capacity)
@@ -78,7 +114,7 @@ public sealed class ConcurrentQueueMailbox(ActorFrameworkOptions actorFrameworkO
         _signal.Release();
     }
 
-    public override async IAsyncEnumerable<MailboxTransaction> DequeueAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+    public async IAsyncEnumerable<MailboxTransaction> DequeueAsync([EnumeratorCancellation] CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -89,22 +125,5 @@ public sealed class ConcurrentQueueMailbox(ActorFrameworkOptions actorFrameworkO
                 yield return new(_queue, message, OnCommitInternal, OnRollbackInternal);
             }
         }
-    }
-
-    // Release the signal to unblock any waiting Dequeue calls
-    protected override void OnRollbackInternal(IMessage message) =>
-        _signal.Release();
-
-    // unblock any waiting Dequeue calls
-    public override void Stop() => _signal.Release(int.MaxValue);
-
-    protected override void Dispose(bool disposing)
-    {
-        if (disposing)
-        {
-            Stop();
-            _signal.Dispose();
-        }
-        base.Dispose(disposing);
     }
 }

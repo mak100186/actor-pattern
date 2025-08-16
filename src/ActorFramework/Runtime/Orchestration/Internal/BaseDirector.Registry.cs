@@ -41,6 +41,7 @@ public abstract partial class BaseDirector
         public Exception? LastException { get; private set; }
         public DateTimeOffset? PausedAt { get; private set; }
         public DateTimeOffset LastMessageReceivedTimestamp { get; private set; } = DateTimeOffset.MinValue;
+        public int PendingMessageCount => Mailbox.Count;
 
         public ActorState(IEventBus eventBus, IMailbox mailbox, IActor actor, ActorContext context, CancellationTokenSource cancellationSource, AsyncRetryPolicy retryPolicy, Func<ActorState, CancellationToken, Task> dispatchLoop)
         {
@@ -119,7 +120,7 @@ public abstract partial class BaseDirector
 
                 await DispatchTask;
 
-                Mailbox.Stop();
+                Mailbox.Dispose();
                 CancellationSource.Dispose();
                 PauseGate.Dispose();
             }

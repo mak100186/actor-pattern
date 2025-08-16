@@ -32,7 +32,7 @@ public abstract partial class BaseDirector
                             actorState.OnMessageReceived();
 
                             // ConfigureAwait so that you don’t capture a SynchronizationContext or “sticky” context from the caller
-                            await actorState.Actor.OnReceive(mailboxTransaction.Message, actorState.Context.ToExternal(), token).ConfigureAwait(false);
+                            await actorState.Actor.OnReceive(mailboxTransaction.Message, actorState.Context.ToExternal(actorState.PendingMessageCount, actorState.LastMessageReceivedTimestamp), token).ConfigureAwait(false);
                         },
                         cancellationToken
                     );

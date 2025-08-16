@@ -27,27 +27,11 @@ public abstract partial class BaseDirector : IDisposable, IAsyncDisposable
 
             Cleanup();
 
-            foreach (ActorState actorState in Registry.Values)
-            {
-                try
-                {
-                    await actorState.CancellationSource.CancelAsync();
-                }
-                catch
-                {
-                    //ignore
-                }
-            }
-
-            await Task.WhenAll(Registry.Values.Select(r => r.DispatchTask));
-
             Logger.LogInformation(ActorFrameworkConstants.DispatchLoopsCompletedDisposingMailboxes);
 
             foreach (ActorState actorState in Registry.Values)
             {
-                actorState.Mailbox.Dispose();
-                actorState.CancellationSource.Dispose();
-                actorState.PauseGate.Dispose();
+                await actorState.DisposeAsync();
             }
 
             Registry.Clear();

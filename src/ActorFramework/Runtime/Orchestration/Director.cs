@@ -102,8 +102,6 @@ public sealed class Director : BaseDirector,
             _ => throw new MailboxTypeNotHandledException(Options.MailboxType, nameof(Director))
         };
 
-        mailbox.Start();
-
         IActor actor = actorFactory();
         ActorContext context = new(actorId, this);
         CancellationTokenSource cts = new();
