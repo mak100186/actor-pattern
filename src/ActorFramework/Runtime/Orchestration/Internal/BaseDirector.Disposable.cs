@@ -8,6 +8,12 @@ public abstract partial class BaseDirector : IDisposable, IAsyncDisposable
 {
     protected void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, typeof(Director));
 
+    protected virtual void Cleanup()
+    {
+        // This method can be overridden by derived classes to perform additional cleanup.
+        // The base implementation does nothing.
+    }
+
     private async Task DisposeInternal()
     {
         if (_disposed)
@@ -18,6 +24,9 @@ public abstract partial class BaseDirector : IDisposable, IAsyncDisposable
         try
         {
             Logger.LogInformation(ActorFrameworkConstants.ShuttingDownDirectorCancellingActors);
+
+            Cleanup();
+
             foreach (ActorState actorState in Registry.Values)
             {
                 try

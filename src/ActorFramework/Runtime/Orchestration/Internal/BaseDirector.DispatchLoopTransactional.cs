@@ -1,6 +1,6 @@
-﻿using ActorFramework.Abstractions;
-using ActorFramework.Constants;
-using ActorFramework.Models;
+﻿using ActorFramework.Constants;
+using ActorFramework.Events.Poco;
+using ActorFramework.Runtime.Infrastructure.Internal;
 
 using Microsoft.Extensions.Logging;
 
@@ -12,18 +12,16 @@ namespace ActorFramework.Runtime.Orchestration.Internal;
 /// <typeparam name="TMessage"></typeparam>
 public abstract partial class BaseDirector
 {
-    protected async Task DispatchLoopTransactionalAsync(IActor actor, ActorContext context, IMailbox mailbox, ActorState actorState, CancellationToken cancellationToken)
+    protected async Task DispatchLoopTransactionalAsync(ActorState actorState, CancellationToken cancellationToken)
     {
         try
         {
-            await foreach (Infrastructure.Internal.MailboxTransaction mailboxTransaction in mailbox.DequeueAsync(cancellationToken))
+            await foreach (MailboxTransaction mailboxTransaction in actorState.Mailbox.DequeueAsync(cancellationToken))
             {
-                Logger.LogInformation("Director {Identifier} running on Thread {ThreadId}", Identifier, Environment.CurrentManagedThreadId);
-
-                context.Director.RegisterLastActiveTimestamp();
-
                 // Block here if actor is paused
                 actorState.PauseGate.Wait(cancellationToken);
+
+                eventBus.Publish(new ThreadInformationEvent(Identifier, actorState.Identifier, Environment.CurrentManagedThreadId.ToString()));
 
                 try
                 {
@@ -31,10 +29,10 @@ public abstract partial class BaseDirector
                     await actorState.RetryPolicy.ExecuteAsync(
                         async token =>
                         {
-                            actorState.RegisterLastMessageReceivedTimestamp();
+                            actorState.OnMessageReceived();
 
                             // ConfigureAwait so that you don’t capture a SynchronizationContext or “sticky” context from the caller
-                            await actor.OnReceive(mailboxTransaction.Message, context.ToExternal(), token).ConfigureAwait(false);
+                            await actorState.Actor.OnReceive(mailboxTransaction.Message, actorState.Context.ToExternal(), token).ConfigureAwait(false);
                         },
                         cancellationToken
                     );
@@ -44,32 +42,35 @@ public abstract partial class BaseDirector
                     {
                         Logger.LogWarning(ActorFrameworkConstants.CommitFailedAsMessageWasNotAtHeadOfQueue);
                     }
+
+                    actorState.OnMessageCommitted();
                 }
                 catch (Exception ex)
                 {
-                    await actor.OnError(context.ActorId, mailboxTransaction.Message, ex).ConfigureAwait(false);
+                    await actorState.Actor.OnError(actorState.Context.ActorId, mailboxTransaction.Message, ex).ConfigureAwait(false);
 
                     if (Options.ShouldStopOnUnhandledException)
                     {
-                        Logger.LogError(ex, ActorFrameworkConstants.ActorFaultedAfterMaxRetriesPausing, context.ActorId);
-                        actorState.Pause(ex);
+                        Logger.LogError(ex, ActorFrameworkConstants.ActorFaultedAfterMaxRetriesPausing, actorState.Context.ActorId);
 
-                        // Rollback the transaction if processing failed
-                        logger.LogWarning(ex, ActorFrameworkConstants.ActorRollbackFailedMessage, context.ActorId);
                         await mailboxTransaction.RollbackAsync();
+
+                        actorState.OnMessageFailed(ex);
 
                         //STOP:  no processing further messages
                         break;
                     }
                     else
                     {
-                        logger.LogWarning(ex, ActorFrameworkConstants.ActorSkippingFailedMessage, context.ActorId);
+                        logger.LogWarning(ex, ActorFrameworkConstants.ActorSkippingFailedMessage, actorState.Context.ActorId);
 
-                        //commit the transaction even after unsuccessful processing
+                        //commit the transaction even after UN-successful processing
                         if (!await mailboxTransaction.CommitAsync())
                         {
                             Logger.LogWarning(ActorFrameworkConstants.CommitFailedAsMessageWasNotAtHeadOfQueue);
                         }
+
+                        actorState.OnMessageCommitted();
                     }
                 }
             }

@@ -1,5 +1,6 @@
 ﻿using ActorFramework.Abstractions;
 using ActorFramework.Configs;
+using ActorFramework.Events;
 using ActorFramework.Runtime.Orchestration;
 
 using Microsoft.Extensions.Configuration;
@@ -13,6 +14,7 @@ public static class DependencyExtensions
 
     public static IServiceCollection AddActorFramework(this IServiceCollection services, IConfiguration configuration, Action<ActorRegistrationBuilder> configure)
     {
+        services.AddSingleton<IEventBus, InMemoryEventBus>();
         services.AddSingleton<IWorkspace, Workspace>();
         services.AddSingleton<WorkspaceLoadBalancer>();
 

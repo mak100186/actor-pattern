@@ -1,5 +1,7 @@
 ﻿using ActorFramework.Abstractions;
 using ActorFramework.Configs;
+using ActorFramework.Events;
+using ActorFramework.Events.Poco;
 using ActorFramework.Exceptions;
 using ActorFramework.Extensions;
 using ActorFramework.Models;
@@ -16,13 +18,30 @@ namespace ActorFramework.Runtime.Orchestration;
 /// <summary>
 /// Central orchestrator that registers actors, routes messages, and manages lifecycles.
 /// </summary>
-public sealed class Director(IOptions<ActorFrameworkOptions> options, ILogger<Director> logger) : BaseDirector(options, logger), IDirector
+public sealed class Director : BaseDirector,
+    IDirector,
+    IEventListener<ActorReceivedMessageEvent>
 {
     public DateTimeOffset LastActive { get; private set; } = DateTimeOffset.MinValue;
 
     public int TotalQueuedMessageCount => Registry.Sum(kvp => kvp.Value.Mailbox.Count);
 
-    public void RegisterLastActiveTimestamp() => LastActive = DateTimeOffset.UtcNow;
+    public Director(IOptions<ActorFrameworkOptions> options, ILogger<Director> logger, IEventBus eventBus) : base(options, logger, eventBus)
+    {
+        eventBus.Register<ActorReceivedMessageEvent>(this);
+    }
+
+    public void OnEvent(ActorReceivedMessageEvent evt)
+    {
+        LastActive = DateTimeOffset.UtcNow;
+    }
+
+    protected override void Cleanup()
+    {
+        base.Cleanup();
+
+        EventBus.Unregister<ActorReceivedMessageEvent>(this);
+    }
 
     public bool IsBusy()
     {
@@ -88,18 +107,8 @@ public sealed class Director(IOptions<ActorFrameworkOptions> options, ILogger<Di
         IActor actor = actorFactory();
         ActorContext context = new(actorId, this);
         CancellationTokenSource cts = new();
-        Polly.Retry.AsyncRetryPolicy retryPolicy = GetRetryPolicy(actorId);
 
-        ActorState actorState = new()
-        {
-            Mailbox = mailbox,
-            Actor = actor,
-            Context = context,
-            CancellationSource = cts,
-            RetryPolicy = retryPolicy
-        };
-
-        actorState.DispatchTask = Task.Run(() => DispatchLoopTransactionalAsync(actor, context, mailbox, actorState, cts.Token));
+        ActorState actorState = new(EventBus, mailbox, actor, context, cts, GetRetryPolicy(actorId), DispatchLoopTransactionalAsync);
 
         Registry[actorId] = actorState;
     }
@@ -132,12 +141,7 @@ public sealed class Director(IOptions<ActorFrameworkOptions> options, ILogger<Di
 
         Logger.LogInformation(ResumingActor, actorId);
 
-        actorState.Resume();
-
-        if (actorState.DispatchTask.IsCompleted)
-        {
-            actorState.DispatchTask = Task.Run(() => DispatchLoopTransactionalAsync(actorState.Actor, actorState.Context, actorState.Mailbox, actorState, actorState.CancellationSource.Token));
-        }
+        actorState.Resume(DispatchLoopTransactionalAsync);
 
         return ActorResumed;
     }
@@ -164,6 +168,8 @@ public sealed class Director(IOptions<ActorFrameworkOptions> options, ILogger<Di
         //It blocks the current thread until the event is signaled via Set().
         //If the event is already set, Wait() returns immediately.
         actorState.PauseGate.Wait(actorState.CancellationSource.Token);
+
+        EventBus.Publish(new DirectorReceivedMessageEvent(actorId));
 
         // backpressure will apply if mailbox is full
         return actorState.Mailbox.EnqueueAsync(message, actorState.CancellationSource.Token);

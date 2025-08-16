@@ -6,7 +6,7 @@ public interface IWorkspace
 {
     WorkspaceStateExternal GetState();
     IReadOnlyList<IDirector> Directors { get; }
-    IDirector CreateDirector();
+    IDirector? CreateDirector();
     void RemoveDirector(IDirector director);
     void Resume();
 }

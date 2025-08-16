@@ -30,7 +30,7 @@ public sealed class ConcurrentQueueMailbox(ActorFrameworkOptions actorFrameworkO
     /// <inheritdoc />
     public override MailboxStateExternal GetState()
     {
-        IMessage[] mailboxItems = _queue.ToArray();
+        IMessage[] mailboxItems = [.. _queue];
         return new(mailboxItems.Length, mailboxItems);
     }
 

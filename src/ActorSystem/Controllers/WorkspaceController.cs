@@ -14,27 +14,12 @@ namespace ActorSystem.Controllers;
 
 [ApiController]
 [Route("[controller]")]
-public class WorkspaceController(IWorkspace workspace, WorkspaceLoadBalancer workspaceLoadBalancer, ILogger<WorkspaceController> logger) : ControllerBase
+public class WorkspaceController(
+    IWorkspace workspace,
+    Faker<ContestMessage> contestFaker,
+    Faker<PropositionMessage> propositionFaker,
+    WorkspaceLoadBalancer workspaceLoadBalancer) : ControllerBase
 {
-    private static readonly Faker<ContestMessage> contestFaker = new Faker<ContestMessage>()
-        .CustomInstantiator(f => new ContestMessage(
-            Key: f.Random.Guid().ToString(),
-            FeedProvider: f.Company.CompanyName(),
-            Name: f.Commerce.ProductName(),
-            Start: f.Date.FutureOffset(),
-            End: f.Date.FutureOffset(),
-            Delay: f.Random.Int(100, 5000)
-        ));
-
-    private static readonly Faker<PropositionMessage> propositionFaker = new Faker<PropositionMessage>()
-        .CustomInstantiator(f => new PropositionMessage(
-            Key: f.Random.Guid().ToString(),
-            ContestKey: f.Random.Guid().ToString(),
-            Name: f.Commerce.Department(),
-            PropositionAvailability: f.PickRandom<PropositionAvailability>(),
-            IsOpen: f.Random.Bool(),
-            Delay: f.Random.Int(100, 5000)
-        ));
 
     [HttpGet("SendMessages")]
     [ProducesResponseType(typeof(string), (int)HttpStatusCode.OK)]
@@ -53,6 +38,13 @@ public class WorkspaceController(IWorkspace workspace, WorkspaceLoadBalancer wor
         }
 
         return Ok("Messages sent.");
+    }
+
+    [HttpGet("PruneWorkspace")]
+    public IActionResult PruneWorkspace()
+    {
+        workspaceLoadBalancer.PruneIdleDirectors();
+        return Ok();
     }
 
     [HttpGet("WorkspaceState")]

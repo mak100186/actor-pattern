@@ -30,13 +30,13 @@ public class PropositionActor(ILogger<PropositionActor> logger) : IActor
 
             while (delayMs > 0 && !cancellationToken.IsCancellationRequested)
             {
-                logger.LogInformation("DirectorId: {DirectorId} - ActorId: {ActorId} - Processing ContestMessage running on Thread {ThreadId}", context.DirectorId, context.ActorId, Environment.CurrentManagedThreadId);
+                logger.LogInformation("DirectorId: {DirectorId} - ActorId: {ActorId} - Processing PropositionMessage {MessageKey} running on Thread {ThreadId}", context.DirectorId, context.ActorId, propositionMessage.Key, Environment.CurrentManagedThreadId);
 
                 await Task.Delay(100, cancellationToken);
                 delayMs -= 100;
             }
 
-            logger.LogInformation("Processed: {ActorId} {Delay} ms", context.ActorId, delayMs);
+            logger.LogInformation("Processed: {ActorId} {Delay} ms", context.ActorId, propositionMessage.Delay);
         }
     }
 }

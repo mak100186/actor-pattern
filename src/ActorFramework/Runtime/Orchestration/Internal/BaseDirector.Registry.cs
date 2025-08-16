@@ -2,6 +2,8 @@
 
 using ActorFramework.Abstractions;
 using ActorFramework.Base;
+using ActorFramework.Events;
+using ActorFramework.Events.Poco;
 using ActorFramework.Models;
 
 using Polly.Retry;
@@ -24,10 +26,12 @@ public abstract partial class BaseDirector
     /// </summary>
     protected sealed class ActorState : IdentifiableBase, IDisposable, IAsyncDisposable
     {
+        public IEventBus EventBus { get; init; }
         public IMailbox Mailbox { get; init; }
         public IActor Actor { get; init; }
         public ActorContext Context { get; init; }
         public CancellationTokenSource CancellationSource { get; init; }
+        public AsyncRetryPolicy RetryPolicy { get; init; }
         public Task DispatchTask { get; set; }
 
         //used for pausing/resuming message processing - pause is a word used to indicate that the actor is not processing messages at the moment.
@@ -36,14 +40,56 @@ public abstract partial class BaseDirector
         public bool IsPaused { get; private set; }
         public Exception? LastException { get; private set; }
         public DateTimeOffset? PausedAt { get; private set; }
-
-        //used for retry policies and error handling
-        public AsyncRetryPolicy RetryPolicy { get; init; }
-
         public DateTimeOffset LastMessageReceivedTimestamp { get; private set; } = DateTimeOffset.MinValue;
 
-        public void Pause(Exception? ex)
+        public ActorState(IEventBus eventBus, IMailbox mailbox, IActor actor, ActorContext context, CancellationTokenSource cancellationSource, AsyncRetryPolicy retryPolicy, Func<ActorState, CancellationToken, Task> dispatchLoop)
         {
+            this.EventBus = eventBus;
+            this.Mailbox = mailbox;
+            this.Actor = actor;
+            this.Context = context;
+            this.CancellationSource = cancellationSource;
+            this.RetryPolicy = retryPolicy;
+            this.DispatchTask = Task.Run(() => dispatchLoop(this, CancellationSource.Token));
+
+            eventBus.Publish(new ActorRegisteredEvent(context.ActorId, context.Director.Identifier));
+        }
+
+        public void Resume(Func<ActorState, CancellationToken, Task> dispatchLoop)
+        {
+            EventBus.Publish(new ActorResumedEvent(Context.ActorId));
+
+            IsPaused = false;
+            PauseGate.Set();
+            LastException = null;
+            PausedAt = null;
+
+            if (DispatchTask.IsCompleted)
+            {
+                DispatchTask = Task.Run(() => dispatchLoop(this, CancellationSource.Token));
+            }
+        }
+
+        public void OnMessageReceived()
+        {
+            EventBus.Publish(new ActorReceivedMessageEvent(Context.ActorId));
+
+            LastMessageReceivedTimestamp = DateTimeOffset.UtcNow;
+        }
+
+        public void OnMessageCommitted()
+        {
+            // Raise an idle event if the mailbox is empty after processing
+            if (Mailbox.Count == 0)
+            {
+                EventBus.Publish(new ActorIdleEvent(Context.ActorId));
+            }
+        }
+
+        public void OnMessageFailed(Exception ex)
+        {
+            EventBus.Publish(new ActorPausedEvent(Context.ActorId, ex));
+
             IsPaused = true;
             PauseGate.Reset(); //closes the gate until manually resumed by Set()
 
@@ -54,22 +100,14 @@ public abstract partial class BaseDirector
             }
         }
 
-        public void Resume()
-        {
-            IsPaused = false;
-            PauseGate.Set();
-            LastException = null;
-            PausedAt = null;
-        }
-
-        public void RegisterLastMessageReceivedTimestamp() => LastMessageReceivedTimestamp = DateTimeOffset.UtcNow;
-
         #region Disposal
 
         private async Task DisposeInternal()
         {
             try
             {
+                EventBus.Publish(new ActorDisposedEvent(Context.ActorId));
+
                 try
                 {
                     await CancellationSource.CancelAsync();

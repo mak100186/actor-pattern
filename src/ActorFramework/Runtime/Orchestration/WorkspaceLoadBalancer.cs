@@ -17,21 +17,10 @@ public class WorkspaceLoadBalancer(ActorRegistrationBuilder actorRegistrationBui
 
         string actorId = actorType.Name; // or any unique string you use as ID
 
-        IDirector? director = workspace.Directors
-            .OrderBy(d => d.IsBusy()) // or by queue length
-            .FirstOrDefault(d => !d.IsBusy());
-
-        if (director == null)
-        {
-            if (workspace.Directors.Count < options.Value.MaxDegreeOfParallelism)
-            {
-                director = workspace.CreateDirector();
-            }
-            else
-            {
-                director = workspace.Directors.OrderBy(d => d.TotalQueuedMessageCount).ThenBy(d => d.LastActive).First();
-            }
-        }
+        IDirector director =
+            workspace.GetFirstAvailableDirector()
+            ?? workspace.CreateDirector()
+            ?? workspace.GetLeastLoadedIdleDirector();
 
         await director.Send(actorId, message);
     }
@@ -47,5 +36,23 @@ public class WorkspaceLoadBalancer(ActorRegistrationBuilder actorRegistrationBui
         {
             workspace.RemoveDirector(d);
         }
+    }
+}
+
+public static class WorkspaceExtensions
+{
+    public static IDirector? GetFirstAvailableDirector(this IWorkspace workspace)
+    {
+        return workspace.Directors
+            .OrderBy(d => d.IsBusy()) // Prioritize not busy
+            .FirstOrDefault(d => !d.IsBusy());
+    }
+
+    public static IDirector GetLeastLoadedIdleDirector(this IWorkspace workspace)
+    {
+        return workspace.Directors
+            .OrderBy(d => d.TotalQueuedMessageCount) // least messages in mailbox
+            .ThenBy(d => d.LastActive) // then by last active time
+            .First();
     }
 }

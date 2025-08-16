@@ -48,8 +48,11 @@ public static class ActorFrameworkConstants
     public const string ActorFaultedAfterMaxRetriesPausing = "Actor '{ActorId}' faulted on message after max retries; pausing";
     public const string ActorSkippingFailedMessage = "Actor '{ActorId}' skipping failed message and continuing";
     public const string ActorRollbackFailedMessage = "Rolling back transaction for actor {ActorId} due to unhandled exception.";
+    public const string ThreadRunningDirector = "Thread [{ThreadId}] - Director[{Identifier}] - Actor[{Identifier}]";
     public const string ResumingActor = "Resuming actor '{ActorId}'";
+    public const string RemovingDirector = "Removing director '{DirectorId}'";
     public const string ShuttingDownDirectorCancellingActors = "Shutting down Director, cancelling actors...";
+    public const string ShuttingDownWorkspaceDisposingDirectors = "Shutting down workspace, disposing directors...";
     public const string DispatchLoopsCompletedDisposingMailboxes = "Dispatch loops completed, disposing mailboxes...";
     public const string EnqueueOpBlockedAsMailboxAtCapacity = "Producer blocked as Mailbox is at capacity.";
     public const string EnqueueOpDropNewest = "Dropping incoming message due to overflow policy: {@Message}";
