@@ -88,7 +88,7 @@ public sealed class Director : BaseDirector,
     {
         ThrowIfDisposed();
 
-        ArgumentException.ThrowIfNullOrWhiteSpace(nameof(actorId));
+        ArgumentException.ThrowIfNullOrWhiteSpace(actorId);
 
         if (Registry.ContainsKey(actorId))
         {
@@ -162,12 +162,8 @@ public sealed class Director : BaseDirector,
         {
             throw new ActorPausedException(actorId);
         }
-
-        //It blocks the current thread until the event is signaled via Set().
-        //If the event is already set, Wait() returns immediately.
-        actorState.PauseGate.Wait(actorState.CancellationSource.Token);
-
-        EventBus.Publish(new DirectorReceivedMessageEvent(actorId));
+        
+        EventBus.Publish(new DirectorReceivedMessageEvent(Identifier));
 
         // backpressure will apply if mailbox is full
         return actorState.Mailbox.EnqueueAsync(message, actorState.CancellationSource.Token);

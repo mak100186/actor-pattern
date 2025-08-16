@@ -1,0 +1,323 @@
+**Proposing quick patches and design improvements**
+
+Here are a few quick patches that will resolve some bugs and streamline the design:
+
+1. **Fixing argument checks**: Correct the null check for actorId.
+2. **Fixing typos**: Update eventBus and Logger references in BaseDirector.
+3. **Event publishing correction**: Fix or remove incorrect event publishing in Director.Send.
+4. **Event listener registration**: Properly register and clean up in Workspace constructor.
+5. **Thread safety fix**: Add lock in EventBus to handle concurrency.
+6. **Efficient routing**: Implement consistent hashing or a routing map for actorId.
+
+A staged plan could help us address correctness, improve thread safety, and refine actor routing.
+# Codebase review and refactor plan
+
+I read the whole codebase end‑to‑end. You’ve built a clean foundation with transactional mailboxes, dispatch loops, and DI-friendly registration. The biggest wins now are in correctness under concurrency, simplifying routing, and hardening lifecycle/cleanup. Below are precise bugs, leaks, and design changes that keep your current features but make the system safer, more scalable, and easier to operate.
+
+---
+
+## Critical bugs to fix now
+
+- **Argument validation bug (no-op check):**  
+  Replace the parameter name with the value.
+  ```csharp
+  // Director.RegisterActor
+  // BUG:
+  ArgumentException.ThrowIfNullOrWhiteSpace(nameof(actorId));
+  // FIX:
+  ArgumentException.ThrowIfNullOrWhiteSpace(actorId);
+  ```
+
+- **Typos causing compile/runtime errors:**
+  ```csharp
+  // BaseDirector.DispatchLoopTransactional.cs
+  // BUGS:
+  eventBus.Publish(...);        // should be EventBus
+  logger.LogWarning(...);       // should be Logger
+
+  // FIX:
+  EventBus.Publish(new ThreadInformationEvent(Identifier, actorState.Identifier, Environment.CurrentManagedThreadId.ToString()));
+  Logger.LogWarning(ActorFrameworkConstants.CommitFailedAsMessageWasNotAtHeadOfQueue);
+  ```
+
+- **Wrong event payload at send (misleading signal):**  
+  You publish DirectorReceivedMessageEvent with the actorId.
+  ```csharp
+  // Director.Send
+  // BUG (wrong id and arguably wrong event type)
+  EventBus.Publish(new DirectorReceivedMessageEvent(actorId));
+
+  // Minimal FIX (if you keep this event):
+  EventBus.Publish(new DirectorReceivedMessageEvent(Identifier));
+
+  // Or remove it — LastActive is already updated via ActorReceivedMessageEvent in the dispatch loop.
+  ```
+
+- **Workspace not subscribed to thread info events:**  
+  You implement IEventListener<ThreadInformationEvent> but never register/unregister.
+  ```csharp
+  // Workspace constructor
+  _eventBus.Register<ThreadInformationEvent>(this);
+
+  // Workspace.DisposeInternal
+  _eventBus.Unregister<ThreadInformationEvent>(this);
+  ```
+
+- **Unsafe modification during iteration (possible leaked directors):**
+  ```csharp
+  // Workspace.DisposeInternal
+  // BUG (modifies _directors while iterating):
+  foreach (IDirector director in _directors)
+  {
+      RemoveDirector(director);
+  }
+
+  // FIX:
+  foreach (IDirector director in _directors.ToArray())
+  {
+      RemoveDirector(director);
+  }
+  ```
+
+- **InMemoryEventBus is not thread-safe and can crash on concurrent modifications:**  
+  Wrap with a lock and publish on a snapshot. Also isolate listener exceptions.
+  ```csharp
+  public class InMemoryEventBus : IEventBus
+  {
+      private readonly List<object> _listeners = new();
+      private readonly object _gate = new();
+
+      public void Register<TEvent>(IEventListener<TEvent> listener)
+      {
+          lock (_gate) _listeners.Add(listener);
+      }
+
+      public void Unregister<TEvent>(IEventListener<TEvent> listener)
+      {
+          lock (_gate) _listeners.Remove(listener);
+      }
+
+      public void Publish<TEvent>(TEvent evt)
+      {
+          List<IEventListener<TEvent>> snapshot;
+          lock (_gate)
+          {
+              snapshot = _listeners.OfType<IEventListener<TEvent>>().ToList();
+          }
+
+          foreach (var listener in snapshot)
+          {
+              try { listener.OnEvent(evt); }
+              catch { /* swallow to isolate publisher */ }
+          }
+      }
+  }
+  ```
+
+---
+
+## Concurrency and correctness issues
+
+- **Actor identity and message ordering are not guaranteed.**
+  - Today, every new Director registers the same actors by type name (e.g., “ContestActor”), and the load balancer picks any director. That spawns multiple instances of the “same” actor across directors and breaks single-threaded, in-order guarantees per actor instance.
+  - Fix: derive an actorId from the message (domain key), pin that actorId to exactly one director, and register the actor lazily on that director.
+
+- **Blocking waits on the hot path.**
+  - Director.Send calls PauseGate.Wait(token). Even if usually set, this can block request threads under races. The pause gate should only gate the dispatch loop, not producers.
+  - Fix: remove the PauseGate.Wait from Send. The dispatch loop already checks the gate safely.
+
+- **Event signal semantics are inconsistent.**
+  - You have both ActorReceivedMessageEvent and DirectorReceivedMessageEvent. Only the actor event drives LastActive, while Send publishes the director event that no one consumes. Choose one signal for “activity” and be consistent.
+
+- **Mailbox overflow behavior under load.**
+  - BlockProducer does a spin delay. With many producers, it can amplify contention and delay propagation. Consider supporting a TryEnqueueAsync with timeout and/or a backpressure callback. At minimum, log at debug level to avoid log storms under pressure.
+
+- **Potentially misleading state reporting.**
+  - MailboxStateExternal exposes the raw IMessage array. That can be heavy and may expose sensitive payloads. Prefer counts and a few sample metadata fields.
+
+---
+
+## Design refactors to simplify and scale
+
+### 1) Stop pre-registering actors on every director
+- Change Workspace.CreateDirector to not register all actor types. Let directors start empty.
+- Route-time registration ensures a single actor instance (per actorId) exists on exactly one director.
+
+```csharp
+// Workspace.CreateDirector (remove the loop)
+Director director = new(_options, _loggerFactory.CreateLogger<Director>(), _eventBus);
+_eventBus.Publish(new DirectorRegisteredEvent(director.Identifier, Identifier));
+_directors.Add(director);
+return director;
+```
+
+### 2) Introduce a predictable actorId and sticky routing
+- Add an IActorIdResolver to derive a stable actorId from IMessage (e.g., ContestMessage.Key, PropositionMessage.Key).
+- Maintain a ConcurrentDictionary<string, IDirector> to pin that actorId to a director. If the director disappears, remap on next route.
+
+```csharp
+public interface IActorIdResolver
+{
+    string Resolve(IMessage message);
+    Type ResolveActorType(IMessage message);
+}
+
+// Example resolver for your messages:
+public sealed class DefaultActorIdResolver : IActorIdResolver
+{
+    public string Resolve(IMessage message) => message switch
+    {
+        ActorSystem.Messages.ContestMessage m      => $"Contest:{m.Key}",
+        ActorSystem.Messages.PropositionMessage m  => $"Proposition:{m.Key}",
+        _ => message.GetType().Name // fallback
+    };
+
+    public Type ResolveActorType(IMessage message) =>
+        message switch
+        {
+            ActorSystem.Messages.ContestMessage      => typeof(ActorSystem.Actors.ContestActor),
+            ActorSystem.Messages.PropositionMessage  => typeof(ActorSystem.Actors.PropositionActor),
+            _ => throw new InvalidOperationException($"No actor registered for {message.GetType().Name}")
+        };
+}
+```
+
+```csharp
+// WorkspaceLoadBalancer: pinning map + lazy registration
+public class WorkspaceLoadBalancer
+{
+    private readonly ActorRegistrationBuilder _builder;
+    private readonly IWorkspace _workspace;
+    private readonly IOptions<ActorFrameworkOptions> _options;
+    private readonly IServiceProvider _sp;
+    private readonly IActorIdResolver _resolver;
+    private readonly ConcurrentDictionary<string, IDirector> _routing = new();
+
+    public WorkspaceLoadBalancer(
+        ActorRegistrationBuilder builder,
+        IWorkspace workspace,
+        IOptions<ActorFrameworkOptions> options,
+        IServiceProvider sp,
+        IActorIdResolver resolver)
+    {
+        _builder = builder;
+        _workspace = workspace;
+        _options = options;
+        _sp = sp;
+        _resolver = resolver;
+    }
+
+    public async Task RouteAsync(IMessage message)
+    {
+        string actorId = _resolver.Resolve(message);
+        Type actorType = _resolver.ResolveActorType(message);
+
+        IDirector director = _routing.GetOrAdd(actorId, _ =>
+            _workspace.GetFirstAvailableDirector()
+            ?? _workspace.CreateDirector()
+            ?? _workspace.GetLeastLoadedIdleDirector());
+
+        try
+        {
+            // Send fast-path
+            await director.Send(actorId, message);
+        }
+        catch (ActorIdNotFoundException)
+        {
+            // Lazy register and retry
+            director.RegisterActor(actorId, () => (IActor)ActivatorUtilities.CreateInstance(_sp, actorType));
+            await director.Send(actorId, message);
+        }
+        catch (ObjectDisposedException)
+        {
+            // Director was pruned; remap and retry
+            _routing.TryRemove(actorId, out _);
+            await RouteAsync(message);
+        }
+    }
+
+    public void PruneIdleDirectors()
+    {
+        // unchanged logic…
+    }
+}
+```
+
+- This preserves strict per-actor ordering while scaling horizontally across many actorIds.
+
+### 3) Simplify selection heuristics
+- Replace “IsBusy” heuristic with queue depth. It’s clearer and fairer.
+```csharp
+public static IDirector? GetFirstAvailableDirector(this IWorkspace workspace)
+    => workspace.Directors.OrderBy(d => d.TotalQueuedMessageCount).FirstOrDefault();
+
+public static IDirector GetLeastLoadedIdleDirector(this IWorkspace workspace)
+    => workspace.Directors.OrderBy(d => d.TotalQueuedMessageCount).ThenBy(d => d.LastActive).First();
+```
+
+### 4) Remove PauseGate from Send
+- Let only the dispatch loop honor PauseGate. Producers should enqueue or fail fast.
+```csharp
+// Director.Send
+// Remove PauseGate.Wait(...)
+```
+
+### 5) Tighten public surface for clarity and composition
+- Consider adding a non-throwing send (e.g., TrySend with timeout) to pair with overflow policies.
+- Add HasActor or TryRegister to IDirector if you prefer explicit probing vs exception control-flow.
+
+---
+
+## Operational hardening and observability
+
+- **Metrics-first:** Expose counters/gauges for:
+  - per-director total queued messages, per-actor mailbox depth
+  - enqueue failures by overflow policy
+  - actor retries, pauses, resumes
+  - pruning events and reasons
+- **Structured events:** All event payloads already have identifiers and timestamps — great. Ensure they’re logged at appropriate levels and sampled under load.
+- **Safer state endpoints:** Redact or omit full Messages; return counts and a few metadata fields instead.
+- **Pruning safety:** When pruning, remove from the routing map any actorIds pinned to a pruned director to avoid blackholes (see ObjectDisposedException path in the load balancer above).
+
+---
+
+## Quick patches (ready to apply)
+
+- Fix compile/runtime issues:
+  ```diff
+  // Director.RegisterActor
+  - ArgumentException.ThrowIfNullOrWhiteSpace(nameof(actorId));
+  + ArgumentException.ThrowIfNullOrWhiteSpace(actorId);
+
+  // BaseDirector.DispatchLoopTransactional.cs
+  - eventBus.Publish(new ThreadInformationEvent(...));
+  + EventBus.Publish(new ThreadInformationEvent(...));
+  - logger.LogWarning(...)
+  + Logger.LogWarning(...)
+
+  // Director.Send
+  - EventBus.Publish(new DirectorReceivedMessageEvent(actorId));
+  + // Option A: remove this line
+  + // Option B: EventBus.Publish(new DirectorReceivedMessageEvent(Identifier));
+
+  // Workspace ctor
+  + _eventBus.Register<ThreadInformationEvent>(this);
+
+  // Workspace.DisposeInternal
+  + _eventBus.Unregister<ThreadInformationEvent>(this);
+  - foreach (IDirector director in _directors)
+  + foreach (IDirector director in _directors.ToArray())
+        RemoveDirector(director);
+  ```
+
+- Make EventBus thread-safe (snippet above).
+
+- Stop pre-registering actors in Workspace.CreateDirector (snippet above) and implement sticky routing with lazy registration (snippets above).
+
+- Remove PauseGate.Wait from Director.Send.
+
+- Prefer queue-depth–based director selection (snippet above).
+
+---
+
+If you want, I’ll produce a focused PR-style diff that applies only the “Critical bugs” and “Stop pre-register + sticky routing + lazy registration” changes, with minimal churn. Do you want me to draft that next, or start with the EventBus hardening?

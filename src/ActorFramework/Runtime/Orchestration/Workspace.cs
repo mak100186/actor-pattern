@@ -33,6 +33,8 @@ public partial class Workspace : IdentifiableBase, IWorkspace
         _eventBus = eventBus;
         _actorRegistrationBuilder = actorRegistrationBuilder;
 
+        _eventBus.Register<ThreadInformationEvent>(this);
+
         CreateDirector(); // bootstrap 1 director
     }
 
@@ -148,7 +150,9 @@ public partial class Workspace : IDisposable, IAsyncDisposable
         {
             _logger.LogInformation(ActorFrameworkConstants.ShuttingDownWorkspaceDisposingDirectors);
 
-            foreach (IDirector director in _directors)
+            _eventBus.Unregister<ThreadInformationEvent>(this);
+            
+            foreach (IDirector director in _directors.ToArray())
             {
                 RemoveDirector(director);
             }

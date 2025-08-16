@@ -21,7 +21,7 @@ public abstract partial class BaseDirector
                 // Block here if actor is paused
                 actorState.PauseGate.Wait(cancellationToken);
 
-                eventBus.Publish(new ThreadInformationEvent(Identifier, actorState.Identifier, Environment.CurrentManagedThreadId.ToString()));
+                EventBus.Publish(new ThreadInformationEvent(Identifier, actorState.Identifier, Environment.CurrentManagedThreadId.ToString()));
 
                 try
                 {
@@ -62,7 +62,7 @@ public abstract partial class BaseDirector
                     }
                     else
                     {
-                        logger.LogWarning(ex, ActorFrameworkConstants.ActorSkippingFailedMessage, actorState.Context.ActorId);
+                        Logger.LogWarning(ex, ActorFrameworkConstants.ActorSkippingFailedMessage, actorState.Context.ActorId);
 
                         //commit the transaction even after UN-successful processing
                         if (!await mailboxTransaction.CommitAsync())
