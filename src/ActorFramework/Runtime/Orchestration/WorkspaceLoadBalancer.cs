@@ -16,11 +16,7 @@ public class WorkspaceLoadBalancer(ActorRegistrationBuilder actorRegistrationBui
             throw new InvalidOperationException($"No actor registered for message type {messageType.Name}");
         }
 
-        IDirector director =
-            workspace.GetDirectorForMessage(message)
-            ?? workspace.GetFirstAvailableDirector()
-            ?? workspace.CreateDirector()
-            ?? workspace.GetLeastLoadedIdleDirector();
+        IDirector? director = workspace.GetDirectorForMessage(message);
 
         if (director != null)
         {
@@ -36,7 +32,22 @@ public class WorkspaceLoadBalancer(ActorRegistrationBuilder actorRegistrationBui
         }
         else
         {
-            PruneIdleDirectors();
+            director =
+                    workspace.GetFirstAvailableDirector()
+                    ?? workspace.CreateDirector();
+
+            if (director == null)
+            {
+                PruneIdleDirectors();
+            }
+
+            director =
+                    workspace.GetFirstAvailableDirector()
+                    ?? workspace.CreateDirector()
+                    ?? workspace.GetLeastLoadedIdleDirector()
+                    ?? throw new InvalidOperationException("No directors available to handle the message.");
+
+            await director.Send(message);
         }
     }
 
