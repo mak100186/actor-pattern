@@ -22,7 +22,22 @@ public class WorkspaceLoadBalancer(ActorRegistrationBuilder actorRegistrationBui
             ?? workspace.CreateDirector()
             ?? workspace.GetLeastLoadedIdleDirector();
 
-        await director.Send(message);
+        if (director != null)
+        {
+            if (director.GetQueuedMessageCountForActor(message) > options.Value.MailboxCapacity / 2)
+            {
+                director =
+                    workspace.GetFirstAvailableDirector()
+                    ?? workspace.CreateDirector()
+                    ?? workspace.GetLeastLoadedIdleDirector();
+            }
+
+            await director.Send(message);
+        }
+        else
+        {
+            PruneIdleDirectors();
+        }
     }
 
     public void PruneIdleDirectors()

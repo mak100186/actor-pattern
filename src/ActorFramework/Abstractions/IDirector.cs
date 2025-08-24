@@ -9,6 +9,7 @@ public interface IDirector : IDisposable, IAsyncDisposable, IIdentifiable
     void ResumeActors();
     DirectorStateExternal GetState();
     bool ContainsActor(IMessage message);
+    int GetQueuedMessageCountForActor(IMessage message);
     ValueTask Send(IMessage message);
     bool IsBusy();
 }

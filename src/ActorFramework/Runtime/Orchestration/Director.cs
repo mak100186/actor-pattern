@@ -104,6 +104,17 @@ public sealed class Director : BaseDirector,
         return Registry.ContainsKey(actorId);
     }
 
+    public int GetQueuedMessageCountForActor(IMessage message)
+    {
+        ThrowIfDisposed();
+        string actorId = _actorIdProvider.GetActorId(message);
+        if (Registry.TryGetValue(actorId, out ActorState? actorState))
+        {
+            return actorState.Mailbox.Count;
+        }
+        throw new ActorIdNotFoundException(actorId);
+    }
+
     /// <summary>
     /// Delivers a message to the specified actor’s mailbox.
     /// </summary>
@@ -194,5 +205,4 @@ public sealed class Director : BaseDirector,
 
         Registry[actorId] = actorState;
     }
-
 }
