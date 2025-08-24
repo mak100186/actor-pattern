@@ -20,11 +20,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include=".docs\readme.md" />
+    <ProjectReference Include="..\..\src\ActorFramework\ActorFramework.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ActorFramework\ActorFramework.csproj" />
+    <Folder Include=".docs\" />
   </ItemGroup>
 
 </Project>
