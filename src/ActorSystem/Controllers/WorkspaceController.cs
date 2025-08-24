@@ -4,10 +4,6 @@ using ActorFramework.Abstractions;
 using ActorFramework.Models;
 using ActorFramework.Runtime.Orchestration;
 
-using ActorSystem.Messages;
-
-using Bogus;
-
 using Microsoft.AspNetCore.Mvc;
 
 namespace ActorSystem.Controllers;
@@ -16,10 +12,31 @@ namespace ActorSystem.Controllers;
 [Route("[controller]")]
 public class WorkspaceController(
     IWorkspace workspace,
-    Faker<ContestMessage> contestFaker,
-    Faker<PropositionMessage> propositionFaker,
+    ContestMessageBuilder contestFaker,
+    PropositionMessageBuilder propositionFaker,
     WorkspaceLoadBalancer workspaceLoadBalancer) : ControllerBase
 {
+    [HttpGet("SendContestMessage")]
+    [ProducesResponseType(typeof(string), (int)HttpStatusCode.OK)]
+    public async Task<IActionResult> SendContestMessageAsync(string key)
+    {
+        var message = contestFaker.WithKey(key).Build();
+
+        await workspaceLoadBalancer.RouteAsync(message);
+
+        return Ok("Messages sent.");
+    }
+
+    [HttpGet("SendPropositionMessage")]
+    [ProducesResponseType(typeof(string), (int)HttpStatusCode.OK)]
+    public async Task<IActionResult> SendPropositionMessageAsync(string key)
+    {
+        var message = propositionFaker.WithKey(key).Build();
+
+        await workspaceLoadBalancer.RouteAsync(message);
+
+        return Ok("Messages sent.");
+    }
 
     [HttpGet("SendMessages")]
     [ProducesResponseType(typeof(string), (int)HttpStatusCode.OK)]
@@ -27,7 +44,7 @@ public class WorkspaceController(
     {
         for (var i = 0; i < countOfMessagesToGenerate; i++)
         {
-            IMessage message = i % 2 == 0 ? contestFaker.Generate() : propositionFaker.Generate();
+            IMessage message = i % 2 == 0 ? contestFaker.Build() : propositionFaker.Build();
 
             await workspaceLoadBalancer.RouteAsync(message);
         }

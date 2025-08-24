@@ -7,7 +7,6 @@ using ActorFramework.Events.Poco;
 using ActorFramework.Extensions;
 using ActorFramework.Models;
 
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -20,15 +19,17 @@ public sealed partial class Workspace : IdentifiableBase, IWorkspace
     private readonly ILogger _logger;
     private readonly ILoggerFactory _loggerFactory;
     private readonly IServiceProvider _serviceProvider;
+    private readonly ActorIdProvider _actorIdProvider;
     private readonly IEventBus _eventBus;
     private readonly List<IDirector> _directors = [];
     private readonly Lock _lock = new();
 
-    public Workspace(ActorRegistrationBuilder actorRegistrationBuilder, IOptions<ActorFrameworkOptions> options, ILogger<Workspace> logger, ILoggerFactory loggerFactory, IServiceProvider serviceProvider, IEventBus eventBus)
+    public Workspace(ActorRegistrationBuilder actorRegistrationBuilder, ActorIdProvider actorIdProvider, IOptions<ActorFrameworkOptions> options, ILogger<Workspace> logger, ILoggerFactory loggerFactory, IServiceProvider serviceProvider, IEventBus eventBus)
     {
         _options = options;
         _logger = logger;
         _loggerFactory = loggerFactory;
+        _actorIdProvider = actorIdProvider;
         _serviceProvider = serviceProvider;
         _eventBus = eventBus;
         _actorRegistrationBuilder = actorRegistrationBuilder;
@@ -61,14 +62,9 @@ public sealed partial class Workspace : IdentifiableBase, IWorkspace
                 return null;
             }
 
-            Director director = new(_options, _loggerFactory.CreateLogger<Director>(), _eventBus);
+            Director director = new(_serviceProvider, _actorIdProvider, _actorRegistrationBuilder, _options, _loggerFactory.CreateLogger<Director>(), _eventBus);
 
             _eventBus.Publish(new DirectorRegisteredEvent(director.Identifier, Identifier));
-
-            foreach (var actorType in _actorRegistrationBuilder.ActorTypes)
-            {
-                director.RegisterActor(actorType.Name, () => (IActor)ActivatorUtilities.CreateInstance(_serviceProvider, actorType));
-            }
 
             _directors.Add(director);
             return director;
@@ -95,7 +91,7 @@ public sealed partial class Workspace : IdentifiableBase, IWorkspace
         ThrowIfDisposed();
         lock (_lock)
         {
-            foreach (var director in _directors)
+            foreach (IDirector director in _directors)
             {
                 director.ResumeActors();
             }
@@ -163,8 +159,8 @@ public sealed partial class Workspace : IDisposable, IAsyncDisposable
             _logger.LogInformation(ActorFrameworkConstants.ShuttingDownWorkspaceDisposingDirectors);
 
             _eventBus.Unregister(this);
-            
-            foreach (var director in _directors.ToArray())
+
+            foreach (IDirector director in _directors.ToArray())
             {
                 RemoveDirector(director);
             }

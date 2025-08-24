@@ -8,7 +8,7 @@ public interface IDirector : IDisposable, IAsyncDisposable, IIdentifiable
     DateTimeOffset LastActive { get; }
     void ResumeActors();
     DirectorStateExternal GetState();
-    void RegisterActor(string actorId, Func<IActor> actorFactory);
-    ValueTask Send(string actorId, IMessage message);
+    bool ContainsActor(IMessage message);
+    ValueTask Send(IMessage message);
     bool IsBusy();
 }

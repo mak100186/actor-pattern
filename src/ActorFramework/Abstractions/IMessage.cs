@@ -5,4 +5,5 @@
 /// </summary>
 public interface IMessage
 {
+    string GetPartitionKey();
 }

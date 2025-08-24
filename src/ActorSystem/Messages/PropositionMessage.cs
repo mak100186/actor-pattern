@@ -9,4 +9,7 @@ public enum PropositionAvailability
     InPlay
 }
 
-public record PropositionMessage(string Key, string ContestKey, string Name, PropositionAvailability PropositionAvailability, bool IsOpen, int Delay) : IMessage;
+public record PropositionMessage(string Key, string ContestKey, string Name, PropositionAvailability PropositionAvailability, bool IsOpen, int Delay) : IMessage
+{
+    public string GetPartitionKey() => Key;
+}

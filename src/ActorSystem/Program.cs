@@ -4,8 +4,6 @@ using ActorFramework.Extensions;
 using ActorSystem.Actors;
 using ActorSystem.Messages;
 
-using Bogus;
-
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,25 +25,8 @@ builder.Services
     .AddControllers()
     .AddActorFrameworkJsonPolymorphism(actorRegistrationBuilder);
 
-builder.Services.AddSingleton(new Faker<ContestMessage>()
-        .CustomInstantiator(f => new(
-            Key: f.Random.Guid().ToString(),
-            FeedProvider: f.Company.CompanyName(),
-            Name: f.Commerce.ProductName(),
-            Start: f.Date.FutureOffset(),
-            End: f.Date.FutureOffset(),
-            Delay: f.Random.Int(100, 5000)
-        )));
-
-builder.Services.AddSingleton(new Faker<PropositionMessage>()
-    .CustomInstantiator(f => new(
-        Key: f.Random.Guid().ToString(),
-        ContestKey: f.Random.Guid().ToString(),
-        Name: f.Commerce.Department(),
-        PropositionAvailability: f.PickRandom<PropositionAvailability>(),
-        IsOpen: f.Random.Bool(),
-        Delay: f.Random.Int(100, 5000)
-    )));
+builder.Services.AddSingleton<ContestMessageBuilder>();
+builder.Services.AddSingleton<PropositionMessageBuilder>();
 
 builder.Services.AddOpenApi();
 

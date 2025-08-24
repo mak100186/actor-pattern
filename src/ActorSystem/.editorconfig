@@ -49,6 +49,14 @@ dotnet_style_qualification_for_field = false:warning
 dotnet_style_qualification_for_property = false:warning
 dotnet_style_qualification_for_method = false:warning
 dotnet_style_qualification_for_event = false:warning
+dotnet_style_prefer_conditional_expression_over_return = true:warning
+dotnet_style_explicit_tuple_names = true:suggestion
+dotnet_style_prefer_inferred_tuple_names = true:suggestion
+dotnet_style_prefer_inferred_anonymous_type_member_names = true:suggestion
+dotnet_style_prefer_compound_assignment = true:warning
+dotnet_style_prefer_simplified_interpolation = true:warning
+dotnet_style_prefer_collection_expression = never:warning
+dotnet_style_namespace_match_folder = true:suggestion
 
 [*.{json,config,nswag}]
 indent_size = 2
@@ -932,3 +940,4 @@ dotnet_diagnostic.CA2218.severity = warning
 dotnet_diagnostic.CA2219.severity = warning
 dotnet_diagnostic.CA2224.severity = warning
 csharp_prefer_system_threading_lock = true:suggestion
+csharp_style_prefer_implicitly_typed_lambda_expression = true:suggestion

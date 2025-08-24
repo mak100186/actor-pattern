@@ -8,6 +8,7 @@ using ActorFramework.Models;
 using ActorFramework.Runtime.Infrastructure;
 using ActorFramework.Runtime.Orchestration.Internal;
 
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -26,7 +27,25 @@ public sealed class Director : BaseDirector,
 
     public int TotalQueuedMessageCount => Registry.Sum(kvp => kvp.Value.Mailbox.Count);
 
-    public Director(IOptions<ActorFrameworkOptions> options, ILogger<Director> logger, IEventBus eventBus) : base(options, logger, eventBus) => eventBus.Register(this);
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ActorRegistrationBuilder _actorRegistrationBuilder;
+    private readonly ActorIdProvider _actorIdProvider;
+
+    public Director(
+        IServiceProvider serviceProvider,
+        ActorIdProvider actorIdProvider,
+        ActorRegistrationBuilder actorRegistrationBuilder,
+        IOptions<ActorFrameworkOptions> options,
+        ILogger<Director> logger,
+        IEventBus eventBus)
+            : base(options, logger, eventBus)
+    {
+        _serviceProvider = serviceProvider;
+        _actorIdProvider = actorIdProvider;
+        _actorRegistrationBuilder = actorRegistrationBuilder;
+
+        eventBus.Register(this);
+    }
 
     public void OnEvent(ActorReceivedMessageEvent evt) => LastActive = DateTimeOffset.UtcNow;
 
@@ -76,12 +95,80 @@ public sealed class Director : BaseDirector,
         );
     }
 
+    public bool ContainsActor(IMessage message)
+    {
+        ThrowIfDisposed();
+
+        string actorId = _actorIdProvider.GetActorId(message);
+
+        return Registry.ContainsKey(actorId);
+    }
+
     /// <summary>
-    /// Registers an actor under a unique identifier, spins up its mailbox and dispatch loop.
+    /// Delivers a message to the specified actor’s mailbox.
     /// </summary>
-    /// <param name="actorId">Unique key for this actor instance.</param>
-    /// <param name="actorFactory">Factory creating the actor implementation.</param>
-    public void RegisterActor(string actorId, Func<IActor> actorFactory)
+    /// <param name="actorId">Target actor’s identifier.</param>
+    /// <param name="message">The message to deliver.</param>
+    public ValueTask Send(IMessage message)
+    {
+        ThrowIfDisposed();
+
+        string actorId = _actorIdProvider.GetActorId(message);
+
+        if (!Registry.TryGetValue(actorId, out ActorState? actorState))
+        {
+            if (_actorRegistrationBuilder.MessageToActorMap.TryGetValue(message.GetType(), out Type? actorType))
+            {
+                RegisterActor(actorId, () => (IActor)ActivatorUtilities.CreateInstance(_serviceProvider, actorType));
+            }
+
+            actorState = Registry.GetValueOrDefault(actorId);
+
+            if (actorState == null)
+            {
+                throw new ActorIdNotFoundException(actorId);
+            }
+        }
+
+        EventBus.Publish(new DirectorReceivedMessageEvent(Identifier));
+
+        // backpressure will apply if mailbox is full
+        return actorState.Mailbox.EnqueueAsync(message, actorState.CancellationSource.Token);
+    }
+
+    /// <summary>
+    /// Resumes all actors that were previously paused. All queued messages will be processed.
+    /// </summary>
+    public void ResumeActors()
+    {
+        foreach (string actorId in Registry.Keys)
+        {
+            ResumeActor(actorId);
+        }
+    }
+
+    private string ResumeActor(string actorId)
+    {
+        ThrowIfDisposed();
+
+        if (!Registry.TryGetValue(actorId, out ActorState? actorState))
+        {
+            return string.Format(ActorNotFoundFormat, actorId);
+        }
+
+        if (!actorState.IsPaused)
+        {
+            return ActorAlreadyProcessing;
+        }
+
+        Logger.LogInformation(ResumingActor, actorId);
+
+        actorState.Resume(DispatchLoopTransactionalAsync);
+
+        return ActorResumed;
+    }
+
+    private void RegisterActor(string actorId, Func<IActor> actorFactory)
     {
         ThrowIfDisposed();
 
@@ -99,7 +186,7 @@ public sealed class Director : BaseDirector,
             _ => throw new MailboxTypeNotHandledException(Options.MailboxType, nameof(Director))
         };
 
-        var actor = actorFactory();
+        IActor actor = actorFactory();
         ActorContext context = new(actorId, this);
         CancellationTokenSource cts = new();
 
@@ -108,61 +195,4 @@ public sealed class Director : BaseDirector,
         Registry[actorId] = actorState;
     }
 
-    /// <summary>
-    /// Resumes all actors that were previously paused. All queued messages will be processed.
-    /// </summary>
-    /// <returns></returns>
-    public void ResumeActors()
-    {
-        foreach (var actorId in Registry.Keys)
-        {
-            ResumeActor(actorId);
-        }
-    }
-
-    private string ResumeActor(string actorId)
-    {
-        ThrowIfDisposed();
-
-        if (!Registry.TryGetValue(actorId, out var actorState))
-        {
-            return string.Format(ActorNotFoundFormat, actorId);
-        }
-
-        if (!actorState.IsPaused)
-        {
-            return ActorAlreadyProcessing;
-        }
-
-        Logger.LogInformation(ResumingActor, actorId);
-
-        actorState.Resume(DispatchLoopTransactionalAsync);
-
-        return ActorResumed;
-    }
-
-    /// <summary>
-    /// Delivers a message to the specified actor’s mailbox.
-    /// </summary>
-    /// <param name="actorId">Target actor’s identifier.</param>
-    /// <param name="message">The message to deliver.</param>
-    public ValueTask Send(string actorId, IMessage message)
-    {
-        ThrowIfDisposed();
-
-        if (!Registry.TryGetValue(actorId, out var actorState))
-        {
-            throw new ActorIdNotFoundException(actorId);
-        }
-
-        if (actorState.IsPaused)
-        {
-            throw new ActorPausedException(actorId);
-        }
-        
-        EventBus.Publish(new DirectorReceivedMessageEvent(Identifier));
-
-        // backpressure will apply if mailbox is full
-        return actorState.Mailbox.EnqueueAsync(message, actorState.CancellationSource.Token);
-    }
 }

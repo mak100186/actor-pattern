@@ -34,6 +34,7 @@ public class WorkspaceTestContext
 
     public void CreateSubject() => SubjectUnderTest = new(
         actorRegistrationBuilder: new ActorRegistrationBuilder().AddActor<MockActor, MockMessage>(),
+        actorIdProvider: new ActorIdProvider(),
         options: MockOptions.Object,
         logger: MockLogger.Object,
         loggerFactory: MockLoggerFactory.Object,

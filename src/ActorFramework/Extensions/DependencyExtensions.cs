@@ -17,6 +17,7 @@ public static class DependencyExtensions
         services.AddSingleton<IEventBus, InMemoryEventBus>();
         services.AddSingleton<IWorkspace, Workspace>();
         services.AddSingleton<WorkspaceLoadBalancer>();
+        services.AddSingleton<ActorIdProvider>();
 
         ActorRegistrationBuilder builder = new();
         configure(builder);

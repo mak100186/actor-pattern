@@ -67,19 +67,19 @@ public class InfrastructureTests
     public void EnsureWorkspaceHasAtleastOneDirectorWhenInstantiated()
     {
         // Arrange
-        var context = new WorkspaceTestContext()
+        WorkspaceTestContext context = new WorkspaceTestContext()
             .WithOptions(options =>
             {
                 options.MaxDegreeOfParallelism = 5;
             });
 
-        var capture = new EventCapture<DirectorRegisteredEvent>()
+        EventCapture<DirectorRegisteredEvent> capture = new EventCapture<DirectorRegisteredEvent>()
             .SetupCapture(context.MockEventBus);
 
         context.CreateSubject();
 
         // Act
-        var directors = context.SubjectUnderTest.Directors;
+        IReadOnlyList<IDirector> directors = context.SubjectUnderTest.Directors;
 
         // Assert
         Assert.NotEmpty(directors); // At least one director exists
@@ -105,20 +105,20 @@ public class InfrastructureTests
     public void EnsureWorkspaceDoesNotCreateADirectorWhenCapacityHasReached()
     {
         // Arrange
-        var context = new WorkspaceTestContext()
+        WorkspaceTestContext context = new WorkspaceTestContext()
             .WithOptions(options =>
             {
                 options.MaxDegreeOfParallelism = 1;
             });
 
-        var capture = new EventCapture<WorkspaceCapacityReachedEvent>()
+        EventCapture<WorkspaceCapacityReachedEvent> capture = new EventCapture<WorkspaceCapacityReachedEvent>()
             .SetupCapture(context.MockEventBus);
 
         context.CreateSubject();
 
         // Act
-        var director1 = context.SubjectUnderTest.CreateDirector();
-        var directors = context.SubjectUnderTest.Directors;
+        IDirector? director1 = context.SubjectUnderTest.CreateDirector();
+        IReadOnlyList<IDirector> directors = context.SubjectUnderTest.Directors;
 
         // Assert
         Assert.Null(director1);
@@ -144,29 +144,29 @@ public class InfrastructureTests
     public void EnsureRemoveDirectorRemovesDirectorAndPublishesEvent()
     {
         // Arrange
-        var context = new WorkspaceTestContext()
+        WorkspaceTestContext context = new WorkspaceTestContext()
             .WithOptions(options =>
             {
                 options.MaxDegreeOfParallelism = 3;
             });
 
-        var capture = new EventCapture<DirectorDisposedEvent>()
+        EventCapture<DirectorDisposedEvent> capture = new EventCapture<DirectorDisposedEvent>()
             .SetupCapture(context.MockEventBus);
 
         context.CreateSubject();
 
         // Create an additional director
-        var additionalDirector = context.SubjectUnderTest.CreateDirector();
+        IDirector? additionalDirector = context.SubjectUnderTest.CreateDirector();
         Assert.NotNull(additionalDirector);
 
-        var initialDirectorCount = context.SubjectUnderTest.Directors.Count;
-        var directorIdToRemove = additionalDirector.Identifier;
+        int initialDirectorCount = context.SubjectUnderTest.Directors.Count;
+        string directorIdToRemove = additionalDirector.Identifier;
 
         // Act
         context.SubjectUnderTest.RemoveDirector(additionalDirector);
 
         // Assert
-        var directorsAfterRemoval = context.SubjectUnderTest.Directors;
+        IReadOnlyList<IDirector> directorsAfterRemoval = context.SubjectUnderTest.Directors;
         Assert.Equal(initialDirectorCount - 1, directorsAfterRemoval.Count);
         Assert.DoesNotContain(additionalDirector, directorsAfterRemoval);
 
@@ -190,25 +190,25 @@ public class InfrastructureTests
     public void EnsureRemoveDirectorCanRemoveLastDirector()
     {
         // Arrange
-        var context = new WorkspaceTestContext()
+        WorkspaceTestContext context = new WorkspaceTestContext()
             .WithOptions(options =>
             {
                 options.MaxDegreeOfParallelism = 1;
             });
 
-        var capture = new EventCapture<DirectorDisposedEvent>()
+        EventCapture<DirectorDisposedEvent> capture = new EventCapture<DirectorDisposedEvent>()
             .SetupCapture(context.MockEventBus);
 
         context.CreateSubject();
 
-        var lastDirector = context.SubjectUnderTest.Directors[0];
-        var directorIdToRemove = lastDirector.Identifier;
+        IDirector lastDirector = context.SubjectUnderTest.Directors[0];
+        string directorIdToRemove = lastDirector.Identifier;
 
         // Act
         context.SubjectUnderTest.RemoveDirector(lastDirector);
 
         // Assert
-        var directorsAfterRemoval = context.SubjectUnderTest.Directors;
+        IReadOnlyList<IDirector> directorsAfterRemoval = context.SubjectUnderTest.Directors;
         Assert.Empty(directorsAfterRemoval);
 
         context.VerifyEventPublished<DirectorDisposedEvent>(Times.Exactly(1));
@@ -231,7 +231,7 @@ public class InfrastructureTests
     public void EnsureRemoveDirectorHandlesNonExistentDirectorGracefully()
     {
         // Arrange
-        var context = new WorkspaceTestContext()
+        WorkspaceTestContext context = new WorkspaceTestContext()
             .WithOptions(options =>
             {
                 options.MaxDegreeOfParallelism = 2;
@@ -243,13 +243,13 @@ public class InfrastructureTests
         Mock<IDirector> mockDirector = new();
         mockDirector.Setup(d => d.Identifier).Returns("non-existent-director");
 
-        var initialDirectorCount = context.SubjectUnderTest.Directors.Count;
+        int initialDirectorCount = context.SubjectUnderTest.Directors.Count;
 
         // Act & Assert
-        var exception = Record.Exception(() => context.SubjectUnderTest.RemoveDirector(mockDirector.Object));
+        Exception exception = Record.Exception(() => context.SubjectUnderTest.RemoveDirector(mockDirector.Object));
         Assert.Null(exception); // Should not throw
 
-        var directorsAfterRemoval = context.SubjectUnderTest.Directors;
+        IReadOnlyList<IDirector> directorsAfterRemoval = context.SubjectUnderTest.Directors;
         Assert.Equal(initialDirectorCount, directorsAfterRemoval.Count);
 
         context.VerifyEventPublished<DirectorDisposedEvent>(Times.Exactly(1));
@@ -267,7 +267,7 @@ public class InfrastructureTests
     public void EnsureResumeCallsResumeActorsOnAllDirectors()
     {
         // Arrange
-        var context = new WorkspaceTestContext()
+        WorkspaceTestContext context = new WorkspaceTestContext()
             .WithOptions(options =>
             {
                 options.MaxDegreeOfParallelism = 3;
@@ -276,14 +276,14 @@ public class InfrastructureTests
         context.CreateSubject();
 
         // Create additional directors
-        var director1 = context.SubjectUnderTest.CreateDirector();
-        var director2 = context.SubjectUnderTest.CreateDirector();
+        IDirector? director1 = context.SubjectUnderTest.CreateDirector();
+        IDirector? director2 = context.SubjectUnderTest.CreateDirector();
 
         Assert.NotNull(director1);
         Assert.NotNull(director2);
 
         // Act & Assert
-        var exception = Record.Exception(() => context.SubjectUnderTest.Resume());
+        Exception exception = Record.Exception(context.SubjectUnderTest.Resume);
         Assert.Null(exception); // Should not throw
     }
 
@@ -300,7 +300,7 @@ public class InfrastructureTests
     public void EnsureGetStateReturnsCorrectWorkspaceState()
     {
         // Arrange
-        var context = new WorkspaceTestContext()
+        WorkspaceTestContext context = new WorkspaceTestContext()
             .WithOptions(options =>
             {
                 options.MaxDegreeOfParallelism = 3;
@@ -309,21 +309,21 @@ public class InfrastructureTests
         context.CreateSubject();
 
         // Create additional directors
-        var director1 = context.SubjectUnderTest.CreateDirector();
-        var director2 = context.SubjectUnderTest.CreateDirector();
+        IDirector? director1 = context.SubjectUnderTest.CreateDirector();
+        IDirector? director2 = context.SubjectUnderTest.CreateDirector();
 
         Assert.NotNull(director1);
         Assert.NotNull(director2);
 
         // Act
-        var state = context.SubjectUnderTest.GetState();
+        Models.WorkspaceStateExternal state = context.SubjectUnderTest.GetState();
 
         // Assert
         Assert.NotNull(state);
         Assert.Equal(context.SubjectUnderTest.Identifier, state.Identifier);
         Assert.Equal(3, state.DirectorCount); // Initial + 2 additional
         Assert.Equal(3, state.DirectorStates.Length);
-        Assert.All(state.DirectorStates, directorState => Assert.NotNull(directorState));
+        Assert.All(state.DirectorStates, Assert.NotNull);
     }
 
     /// <summary>
@@ -338,7 +338,7 @@ public class InfrastructureTests
     public void EnsureDisposedWorkspaceThrowsObjectDisposedException()
     {
         // Arrange
-        var context = new WorkspaceTestContext()
+        WorkspaceTestContext context = new WorkspaceTestContext()
             .WithOptions(options =>
             {
                 options.MaxDegreeOfParallelism = 2;
@@ -347,20 +347,20 @@ public class InfrastructureTests
         context.CreateSubject();
 
         // Store a reference to a director before disposal
-        var directorBeforeDispose = context.SubjectUnderTest.Directors[0];
+        IDirector directorBeforeDispose = context.SubjectUnderTest.Directors[0];
 
         // Act
         context.SubjectUnderTest.Dispose();
 
         // Assert
-        Assert.Throws<ObjectDisposedException>(() => context.SubjectUnderTest.CreateDirector());
-        Assert.Throws<ObjectDisposedException>(() => context.SubjectUnderTest.Resume());
+        Assert.Throws<ObjectDisposedException>(context.SubjectUnderTest.CreateDirector);
+        Assert.Throws<ObjectDisposedException>(context.SubjectUnderTest.Resume);
 
         // RemoveDirector should also throw
         Assert.Throws<ObjectDisposedException>(() => context.SubjectUnderTest.RemoveDirector(directorBeforeDispose));
 
         // GetState() doesn't check for disposal, so it should not throw
-        var state = context.SubjectUnderTest.GetState();
+        Models.WorkspaceStateExternal state = context.SubjectUnderTest.GetState();
         Assert.NotNull(state);
     }
 
@@ -376,7 +376,7 @@ public class InfrastructureTests
     public void EnsureDisposeRemovesAllDirectorsAndPublishesEvents()
     {
         // Arrange
-        var context = new WorkspaceTestContext()
+        WorkspaceTestContext context = new WorkspaceTestContext()
             .WithOptions(options =>
             {
                 options.MaxDegreeOfParallelism = 3;
@@ -385,8 +385,8 @@ public class InfrastructureTests
         context.CreateSubject();
 
         // Create additional directors
-        var director1 = context.SubjectUnderTest.CreateDirector();
-        var director2 = context.SubjectUnderTest.CreateDirector();
+        IDirector? director1 = context.SubjectUnderTest.CreateDirector();
+        IDirector? director2 = context.SubjectUnderTest.CreateDirector();
 
         Assert.NotNull(director1);
         Assert.NotNull(director2);
@@ -412,7 +412,7 @@ public class InfrastructureTests
     public async Task EnsureDisposeAsyncRemovesAllDirectorsAndPublishesEvents()
     {
         // Arrange
-        var context = new WorkspaceTestContext()
+        WorkspaceTestContext context = new WorkspaceTestContext()
             .WithOptions(options =>
             {
                 options.MaxDegreeOfParallelism = 3;
@@ -421,8 +421,8 @@ public class InfrastructureTests
         context.CreateSubject();
 
         // Create additional directors
-        var director1 = context.SubjectUnderTest.CreateDirector();
-        var director2 = context.SubjectUnderTest.CreateDirector();
+        IDirector? director1 = context.SubjectUnderTest.CreateDirector();
+        IDirector? director2 = context.SubjectUnderTest.CreateDirector();
 
         Assert.NotNull(director1);
         Assert.NotNull(director2);
@@ -449,7 +449,7 @@ public class InfrastructureTests
     public void EnsureCreateDirectorWorksAfterCapacityIsFreed()
     {
         // Arrange
-        var context = new WorkspaceTestContext()
+        WorkspaceTestContext context = new WorkspaceTestContext()
             .WithOptions(options =>
             {
                 options.MaxDegreeOfParallelism = 2;
@@ -458,18 +458,18 @@ public class InfrastructureTests
         context.CreateSubject();
 
         // Create one additional director to reach capacity
-        var director1 = context.SubjectUnderTest.CreateDirector();
+        IDirector? director1 = context.SubjectUnderTest.CreateDirector();
         Assert.NotNull(director1);
 
         // Try to create another director (should fail due to capacity)
-        var director2 = context.SubjectUnderTest.CreateDirector();
+        IDirector? director2 = context.SubjectUnderTest.CreateDirector();
         Assert.Null(director2);
 
         // Remove the first additional director to free capacity
         context.SubjectUnderTest.RemoveDirector(director1);
 
         // Act - Try to create a new director after freeing capacity
-        var director3 = context.SubjectUnderTest.CreateDirector();
+        IDirector? director3 = context.SubjectUnderTest.CreateDirector();
 
         // Assert
         Assert.NotNull(director3);
@@ -490,7 +490,7 @@ public class InfrastructureTests
     public void EnsureRemoveDirectorThrowsNullReferenceExceptionForNullDirector()
     {
         // Arrange
-        var context = new WorkspaceTestContext()
+        WorkspaceTestContext context = new WorkspaceTestContext()
             .WithOptions(options =>
             {
                 options.MaxDegreeOfParallelism = 2;
@@ -514,7 +514,7 @@ public class InfrastructureTests
     public void EnsureRemoveDirectorHandlesDuplicateRemovalGracefully()
     {
         // Arrange
-        var context = new WorkspaceTestContext()
+        WorkspaceTestContext context = new WorkspaceTestContext()
             .WithOptions(options =>
             {
                 options.MaxDegreeOfParallelism = 2;
@@ -522,11 +522,11 @@ public class InfrastructureTests
 
         context.CreateSubject();
 
-        var director = context.SubjectUnderTest.Directors[0];
+        IDirector director = context.SubjectUnderTest.Directors[0];
 
         // Act
         context.SubjectUnderTest.RemoveDirector(director);
-        var exception = Record.Exception(() => context.SubjectUnderTest.RemoveDirector(director));
+        Exception exception = Record.Exception(() => context.SubjectUnderTest.RemoveDirector(director));
 
         // Assert
         Assert.Null(exception); // Should not throw on duplicate removal

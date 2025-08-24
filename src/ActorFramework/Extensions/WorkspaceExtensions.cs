@@ -1,9 +1,12 @@
 ﻿using ActorFramework.Abstractions;
 
-namespace ActorFramework.Runtime.Orchestration;
+namespace ActorFramework.Extensions;
 
 public static class WorkspaceExtensions
 {
+    public static IDirector? GetDirectorForMessage(this IWorkspace workspace, IMessage message) => workspace.Directors
+        .FirstOrDefault(x => x.ContainsActor(message));
+
     public static IDirector? GetFirstAvailableDirector(this IWorkspace workspace) => workspace.Directors
         .OrderBy(d => d.IsBusy()) // Prioritize not busy
         .FirstOrDefault(d => !d.IsBusy());
