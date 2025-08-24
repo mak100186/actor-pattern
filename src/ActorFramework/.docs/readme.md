@@ -1,36 +1,64 @@
 ﻿# Load Balanced Actor Model Concurrency in Director
 
-## Algorithm: Load Balanced
+## Load Balancing Algorithm
+
 ```mermaid
 flowchart TD
-    A([Start RouteAsync]) --> B{Is message type registered?}
-    B -- No --> C[Throw InvalidOperationException<br/>"No actor registered"]
-    B -- Yes --> D[GetDirectorForMessage(message)]
-    
-    D --> E{Director != null?}
-    
-    E -- Yes --> F{QueuedCount > halfCapacity?}
-    F -- Yes --> G[director = GetFirstAvailable<br/>or CreateDirector<br/>or GetLeastLoadedIdleDirector]
-    F -- No --> H[Use existing director]
-    G --> I[Send(message)]
-    H --> I
-    
-    E -- No --> J[director = GetFirstAvailable<br/>or CreateDirector]
-    J --> K{director == null?}
-    K -- Yes --> L[PruneIdleDirectors()]
-    K -- No --> M[Proceed to re-select]
-    
-    L --> N[director = GetFirstAvailable<br/>or CreateDirector<br/>or GetLeastLoadedIdleDirector]
-    M --> N
-    
-    N --> O{Director found?}
-    O -- No --> P[Throw InvalidOperationException<br/>"No directors available"]
-    O -- Yes --> Q[Send(message)]
+  %% Start
+  A([Start RouteAsync]) --> B{Is message type registered?}
+
+  %% Registration check
+  B -- No --> C[Throw InvalidOperationException<br/>'No actor registered']
+  B -- Yes --> D[GetDirectorForMessage]
+
+  %% Director exists?
+  D --> E{director != null?}
+
+  %% Path when director exists
+  E -- Yes --> F{queuedCount > halfCapacity?}
+  F -- Yes --> G[director = GetFirstAvailable<br/>or CreateDirector<br/>or GetLeastLoadedIdleDirector]
+  F -- No --> H[Use existing director]
+  G --> I[Send]
+  H --> I
+
+  %% Path when no initial director
+  E -- No --> J[director = GetFirstAvailable<br/>or CreateDirector]
+  J --> K{director == null?}
+  K -- Yes --> L[PruneIdleDirectors]
+  K -- No --> M[Proceed to re-select]
+
+  L --> N[Re-select director]
+  M --> N
+
+  %% Final selection
+  N --> O{Director found?}
+  O -- Yes --> P[Send]
+  O -- No --> Q[Throw InvalidOperationException<br/>'No directors available']
+```
+
+## State Diagram of Director Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Created: CreateDirector()
+
+    Created --> Active: Send(message)
+
+    Active --> Active: Send(message)
+    Active --> Idle: Queue empties
+
+    Idle --> Active: New message arrives
+    Idle --> PrunePending: IdleThresholdExceeded
+
+    PrunePending --> Pruned: PruneIdleDirectors()
+
+    Pruned --> [*]
 ```
 
 # Actor Model Concurrency in Director
 
 ## 🧠 How is concurrency handled in the actor model?
+
 **Director** is dispatching actor messages via a single-threaded loop (e.g. using a `Task.Run`): it's effectively **scheduling actors on one thread**, even if the actors themselves are async.
 
 ---
